@@ -5,10 +5,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { ResumeInterpreterRequestSchema } from "@/lib/ai/schemas";
+import { interpretResume } from "@/lib/ai/prompts/resumeInterpreter";
+import { generateMockResumeProfile } from "@/lib/api/mockData";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
     // Validate request
     const validatedData = ResumeInterpreterRequestSchema.safeParse(body);
@@ -22,30 +25,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // const { resumeText } = validatedData.data;
+    const { resumeText } = validatedData.data;
 
-    // Create prompt
-    // const prompt = createResumeInterpreterPrompt(resumeText);
-
-    // TODO: Call Deepseek API
-    // For now, return mock response for testing
-    const mockResponse = {
-      currentRole: "Software Engineer",
-      yearsOfExperience: 5,
-      techStack: ["JavaScript", "TypeScript", "React", "Node.js", "Python"],
-      strengthAreas: ["Full Stack Development", "System Design", "Team Leadership"],
-      industryBackground: "Technology/SaaS",
-      certifications: [],
-      education: ["B.S. Computer Science"],
-    };
-
-    // In production, parse actual Deepseek response
-    // const response = await callDeepseekAPI(prompt);
-    // const profile = await parseResumeInterpreterResponse(response);
+    let profile;
+    
+    if (useMock) {
+      // Use mock data
+      profile = generateMockResumeProfile(resumeText);
+    } else {
+      // Call actual AI API
+      try {
+        profile = await interpretResume(resumeText);
+      } catch (error) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Failed to interpret resume: ${error instanceof Error ? error.message : String(error)}`,
+          },
+          { status: 500 }
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      data: mockResponse,
+      data: profile,
     });
   } catch (error) {
     console.error("Resume interpreter error:", error);

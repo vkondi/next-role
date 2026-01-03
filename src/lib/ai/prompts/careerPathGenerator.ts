@@ -6,6 +6,7 @@
 import { CareerPathSchema } from "../schemas";
 import type { CareerPath, ResumeProfile } from "../schemas";
 import { z } from "zod";
+import { callDeepseekAPI } from "@/lib/api/deepseek";
 
 export function createCareerPathGeneratorPrompt(
   resumeProfile: ResumeProfile,
@@ -91,22 +92,16 @@ export async function parseCareerPathGeneratorResponse(
  * Career Path Generator function
  */
 export async function generateCareerPaths(
-  _resumeProfile: ResumeProfile,
-  _numberOfPaths: number = 5
+  resumeProfile: ResumeProfile,
+  numberOfPaths: number = 5
 ): Promise<CareerPath[]> {
-  // const prompt = createCareerPathGeneratorPrompt(resumeProfile, numberOfPaths);
+  const prompt = createCareerPathGeneratorPrompt(resumeProfile, numberOfPaths);
   
-  // TODO: Implement actual API call to Deepseek
-  // const response = await callDeepseekAPI(prompt);
-  // const paths = await parseCareerPathGeneratorResponse(response);
+  // Call Deepseek API
+  const response = await callDeepseekAPI(prompt);
+  const paths = await parseCareerPathGeneratorResponse(response);
   
-  // return paths;
-  throw new Error("Deepseek API not implemented");
+  return paths;
 }
-
-/**
- * Placeholder for Deepseek API call
- */
-// async function callDeepseekAPI(): Promise<string> {
 //   throw new Error("Deepseek API not configured");
 // }

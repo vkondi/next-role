@@ -5,6 +5,7 @@
 
 import { ResumeProfileSchema } from "../schemas";
 import type { ResumeProfile } from "../schemas";
+import { callDeepseekAPI } from "@/lib/api/deepseek";
 
 export function createResumeInterpreterPrompt(
   resumeText: string
@@ -72,38 +73,12 @@ export async function parseResumeInterpreterResponse(
 /**
  * Resume Interpreter function - combines prompt creation and response parsing
  */
-export async function interpretResume(_resumeText: string): Promise<ResumeProfile> {
-//   const prompt = createResumeInterpreterPrompt(resumeText);
+export async function interpretResume(resumeText: string): Promise<ResumeProfile> {
+  const prompt = createResumeInterpreterPrompt(resumeText);
   
-  // TODO: Implement actual API call to Deepseek
-  // This is a placeholder that demonstrates the expected flow
-//   const response = await callDeepseekAPI(prompt);
-//   const profile = await parseResumeInterpreterResponse(response);
+  // Call Deepseek API
+  const response = await callDeepseekAPI(prompt);
+  const profile = await parseResumeInterpreterResponse(response);
   
-//   return profile;
-  throw new Error("Deepseek API not implemented");
+  return profile;
 }
-
-/**
- * Placeholder for Deepseek API call
- * This will be implemented with actual API configuration
- */
-// async function callDeepseekAPI(): Promise<string> {
-  // TODO: Implement with actual Deepseek API call
-  // Example structure:
-  // const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({
-  //     model: 'deepseek-chat',
-  //     messages: [{ role: 'user', content: prompt }],
-  //     temperature: 0.1, // Low temperature for structured output
-  //     top_p: 1,
-  //   }),
-  // });
-  // return response.json();
-//   throw new Error("Deepseek API not configured");
-// }

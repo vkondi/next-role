@@ -5,13 +5,15 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   CareerPathCard,
   SkillGapChart,
   RoadmapTimeline,
+  ApiModeToggle,
 } from "@/components";
+import { useApiMode } from "@/lib/hooks/useApiMode";
 import type {
   ResumeProfile,
   CareerPath,
@@ -21,15 +23,23 @@ import type {
 import { AlertCircle, ArrowLeft } from "lucide-react";
 
 export default function DashboardPage() {
+  const { mode, isLoaded } = useApiMode();
+  const initialLoadRef = useRef(true);
   const [resumeProfile, setResumeProfile] = useState<ResumeProfile | null>(null);
   const [careerPaths, setCareerPaths] = useState<CareerPath[]>([]);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const [skillGapAnalysis, setSkillGapAnalysis] = useState<SkillGapAnalysis | null>(null);
   const [roadmap, setRoadmap] = useState<CareerRoadmap | null>(null);
   const [loading, setLoading] = useState(true);
+  const [skillGapLoading, setSkillGapLoading] = useState(false);
+  const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Initial load on mount (wait for API mode to be loaded)
   useEffect(() => {
+    // Don't load until API mode is loaded from localStorage
+    if (!isLoaded) return;
+
     // Load profile from localStorage
     const storedProfile = localStorage.getItem("resumeProfile");
     if (!storedProfile) {
@@ -46,11 +56,35 @@ export default function DashboardPage() {
       setError("Failed to load resume profile");
       setLoading(false);
     }
-  }, []);
+  }, [isLoaded]);
+
+  // Reload data when API mode changes (only if profile is already loaded)
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      return;
+    }
+    if (!resumeProfile) return;
+    
+    setLoading(true);
+    setCareerPaths([]);
+    setSelectedPathId(null);
+    setSkillGapAnalysis(null);
+    setRoadmap(null);
+    setError(null);
+    
+    loadCareerPaths(resumeProfile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   const loadCareerPaths = async (profile: ResumeProfile) => {
     try {
-      const response = await fetch("/api/career-paths/generate", {
+      const url = new URL("/api/career-paths/generate", window.location.origin);
+      if (mode === "mock") {
+        url.searchParams.set("mock", "true");
+      }
+
+      const response = await fetch(url.toString(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5 }),
@@ -77,6 +111,7 @@ export default function DashboardPage() {
     setSelectedPathId(pathId);
     setSkillGapAnalysis(null);
     setRoadmap(null);
+    setError(null);
 
     if (!resumeProfile) return;
 
@@ -84,8 +119,14 @@ export default function DashboardPage() {
     if (!selectedPath) return;
 
     // Load skill gap analysis
+    setSkillGapLoading(true);
     try {
-      const response = await fetch("/api/skill-gap/analyze", {
+      const url = new URL("/api/skill-gap/analyze", window.location.origin);
+      if (mode === "mock") {
+        url.searchParams.set("mock", "true");
+      }
+
+      const response = await fetch(url.toString(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -99,12 +140,15 @@ export default function DashboardPage() {
       const data = await response.json();
       if (data.success) {
         setSkillGapAnalysis(data.data);
+        setSkillGapLoading(false);
         loadRoadmap(resumeProfile, selectedPath, data.data);
       } else {
         setError(data.error || "Failed to analyze skill gaps");
+        setSkillGapLoading(false);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
+      setSkillGapLoading(false);
     }
   };
 
@@ -113,8 +157,14 @@ export default function DashboardPage() {
     path: CareerPath,
     gaps: SkillGapAnalysis
   ) => {
+    setRoadmapLoading(true);
     try {
-      const response = await fetch("/api/roadmap/generate", {
+      const url = new URL("/api/roadmap/generate", window.location.origin);
+      if (mode === "mock") {
+        url.searchParams.set("mock", "true");
+      }
+
+      const response = await fetch(url.toString(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,6 +185,8 @@ export default function DashboardPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setRoadmapLoading(false);
     }
   };
 
@@ -170,6 +222,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
+      <ApiModeToggle />
       {/* Navigation */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="container flex items-center justify-between h-20">
@@ -230,15 +283,43 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Skill Gap Loading Indicator */}
+        {skillGapLoading && (
+          <div className="space-y-6">
+            <div className="card-elevated p-8">
+              <div className="flex items-center justify-center gap-4">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 animate-pulse" />
+                <div className="space-y-2">
+                  <p className="text-lg font-semibold text-slate-900">Analyzing skill gaps...</p>
+                  <p className="text-sm text-slate-600">This may take a few moments while we assess your skills</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Skill Gap Analysis Section */}
-        {skillGapAnalysis && (
+        {skillGapAnalysis && !skillGapLoading && (
           <div className="space-y-6">
             <SkillGapChart analysis={skillGapAnalysis} />
           </div>
         )}
 
+        {/* Roadmap Loading Indicator */}
+        {skillGapAnalysis && roadmapLoading && (
+          <div className="card-elevated p-8">
+            <div className="flex items-center justify-center gap-4">
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 animate-pulse" />
+              <div className="space-y-2">
+                <p className="text-lg font-semibold text-slate-900">Generating your career roadmap...</p>
+                <p className="text-sm text-slate-600">Creating a personalized 6-month development plan</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Detailed Skill Gaps */}
-        {skillGapAnalysis && (
+        {skillGapAnalysis && !skillGapLoading && (
           <div className="card p-6 space-y-6">
             <h3 className="heading-2">Skill Gap Details</h3>
 
@@ -295,7 +376,7 @@ export default function DashboardPage() {
         )}
 
         {/* Career Roadmap Section */}
-        {roadmap && (
+        {roadmap && !roadmapLoading && (
           <div className="space-y-6">
             <RoadmapTimeline roadmap={roadmap} />
           </div>

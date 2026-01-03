@@ -9,6 +9,7 @@ import type {
   CareerPath,
   SkillGapAnalysis,
 } from "../schemas";
+import { callDeepseekAPI } from "@/lib/api/deepseek";
 
 export function createSkillGapAnalyzerPrompt(
   resumeProfile: ResumeProfile,
@@ -102,16 +103,9 @@ export async function analyzeSkillGaps(
 ): Promise<SkillGapAnalysis> {
   const prompt = createSkillGapAnalyzerPrompt(resumeProfile, careerPath);
 
-  // TODO: Implement actual API call to Deepseek
+  // Call Deepseek API
   const response = await callDeepseekAPI(prompt);
   const analysis = await parseSkillGapAnalyzerResponse(response);
 
   return analysis;
-}
-
-/**
- * Placeholder for Deepseek API call
- */
-async function callDeepseekAPI(_prompt: string): Promise<string> {
-  throw new Error("Deepseek API not configured");
 }
