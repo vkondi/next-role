@@ -6,3 +6,4 @@
 export { CareerPathCard } from './CareerPathCard';
 export { SkillGapChart } from './SkillGapChart';
 export { RoadmapTimeline } from './RoadmapTimeline';
+export { ApiModeToggle } from './ApiModeToggle';

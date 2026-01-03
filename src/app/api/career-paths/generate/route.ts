@@ -5,10 +5,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { CareerPathGeneratorRequestSchema } from "@/lib/ai/schemas";
+import { generateCareerPaths } from "@/lib/ai/prompts/careerPathGenerator";
+import { generateMockCareerPaths } from "@/lib/api/mockData";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
     // Validate request
     const validatedData = CareerPathGeneratorRequestSchema.safeParse(body);
@@ -22,81 +25,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // const { resumeProfile, numberOfPaths = 5 } = validatedData.data;
+    const { resumeProfile, numberOfPaths = 5 } = validatedData.data;
 
-    // Create prompt
-    // const prompt = createCareerPathGeneratorPrompt(resumeProfile, numberOfPaths);
-
-    // TODO: Call Deepseek API
-    // For now, return mock response for testing
-    const mockPaths = [
-      {
-        roleId: "path_001",
-        roleName: "Senior Software Engineer / Tech Lead",
-        description: "Lead engineering teams and drive technical strategy. Focus on architecture, mentorship, and high-impact projects.",
-        marketDemandScore: 95,
-        effortLevel: "Low",
-        rewardPotential: "High",
-        reasoning: "Your 5 years of experience and full-stack expertise position you well for a technical leadership role.",
-        requiredSkills: ["System Design", "Team Management", "Architecture", "Communication", "Strategic Thinking"],
-        industryAlignment: 95,
-      },
-      {
-        roleId: "path_002",
-        roleName: "Solutions Architect",
-        description: "Design scalable solutions for enterprise clients. Bridge business needs and technical implementation.",
-        marketDemandScore: 85,
-        effortLevel: "Medium",
-        rewardPotential: "High",
-        reasoning: "Your diverse tech stack and problem-solving skills are perfect for designing enterprise solutions.",
-        requiredSkills: ["Enterprise Architecture", "Cloud Platforms", "Stakeholder Management", "Business Acumen", "Database Design"],
-        industryAlignment: 85,
-      },
-      {
-        roleId: "path_003",
-        roleName: "DevOps Engineer / Cloud Specialist",
-        description: "Manage infrastructure, deployment pipelines, and cloud platforms. Ensure reliability and scalability.",
-        marketDemandScore: 92,
-        effortLevel: "Medium",
-        rewardPotential: "High",
-        reasoning: "Your backend experience provides a strong foundation for cloud infrastructure and DevOps practices.",
-        requiredSkills: ["Cloud Platforms", "Kubernetes", "CI/CD", "Infrastructure as Code", "Monitoring & Logging"],
-        industryAlignment: 80,
-      },
-      {
-        roleId: "path_004",
-        roleName: "Product Engineer / Technical PM",
-        description: "Drive product development from technical perspective. Balance engineering and product goals.",
-        marketDemandScore: 88,
-        effortLevel: "Medium",
-        rewardPotential: "Medium",
-        reasoning: "Your full-stack expertise allows you to understand both technical and product perspectives.",
-        requiredSkills: ["Product Thinking", "User Research", "Analytics", "Roadmap Planning", "Cross-functional Leadership"],
-        industryAlignment: 75,
-      },
-      {
-        roleId: "path_005",
-        roleName: "ML/AI Engineer",
-        description: "Build machine learning systems and AI-powered products. Apply data science to real-world problems.",
-        marketDemandScore: 90,
-        effortLevel: "High",
-        rewardPotential: "High",
-        reasoning: "With Python in your toolkit and analytical mindset, you can transition into this high-growth field.",
-        requiredSkills: ["Machine Learning", "Python Data Libraries", "Statistics", "Deep Learning", "Model Deployment"],
-        industryAlignment: 60,
-      },
-    ];
-
-    // In production, parse actual Deepseek response
-    // const response = await callDeepseekAPI(prompt);
-    // const paths = await parseCareerPathGeneratorResponse(response);
+    let paths;
+    
+    if (useMock) {
+      // Use mock data
+      paths = generateMockCareerPaths(resumeProfile);
+    } else {
+      // Call actual AI API
+      try {
+        paths = await generateCareerPaths(resumeProfile, numberOfPaths);
+      } catch (error) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Failed to generate career paths: ${error instanceof Error ? error.message : String(error)}`,
+          },
+          { status: 500 }
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      data: mockPaths,
+      data: paths,
     });
   } catch (error) {
-    console.error("Career path generator error:", error);
+    console.error("Career paths generator error:", error);
     return NextResponse.json(
       {
         success: false,

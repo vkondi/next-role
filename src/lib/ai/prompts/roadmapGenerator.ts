@@ -10,6 +10,7 @@ import type {
   SkillGapAnalysis,
   CareerRoadmap,
 } from "../schemas";
+import { callDeepseekAPI } from "@/lib/api/deepseek";
 
 export function createRoadmapGeneratorPrompt(
   resumeProfile: ResumeProfile,
@@ -104,29 +105,21 @@ export async function parseRoadmapGeneratorResponse(
  * Roadmap Generator function
  */
 export async function generateRoadmap(
-  _resumeProfile: ResumeProfile,
-  _careerPath: CareerPath,
-  _skillGapAnalysis: SkillGapAnalysis,
-  _timelineMonths: number = 6
+  resumeProfile: ResumeProfile,
+  careerPath: CareerPath,
+  skillGapAnalysis: SkillGapAnalysis,
+  timelineMonths: number = 6
 ): Promise<CareerRoadmap> {
-  // const prompt = createRoadmapGeneratorPrompt(
-  //   resumeProfile,
-  //   careerPath,
-  //   skillGapAnalysis,
-  //   timelineMonths
-  // );
+  const prompt = createRoadmapGeneratorPrompt(
+    resumeProfile,
+    careerPath,
+    skillGapAnalysis,
+    timelineMonths
+  );
 
-  // TODO: Implement actual API call to Deepseek
-  // const response = await callDeepseekAPI(prompt);
-  // const roadmap = await parseRoadmapGeneratorResponse(response);
+  // Call Deepseek API
+  const response = await callDeepseekAPI(prompt);
+  const roadmap = await parseRoadmapGeneratorResponse(response);
 
-  // return roadmap;
-  throw new Error("Deepseek API not configured");
+  return roadmap;
 }
-
-/**
- * Placeholder for Deepseek API call
- */
-// async function callDeepseekAPI(): Promise<string> {
-//   throw new Error("Deepseek API not configured");
-// }
