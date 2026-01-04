@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Upload, AlertCircle } from "lucide-react";
 import { ApiModeToggle } from "@/components";
@@ -14,12 +14,43 @@ export default function UploadPageContent() {
   const { mode } = useApiMode();
   const { setResumeProfile } = useResume();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const extractedTextRef = useRef<HTMLDivElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const fileErrorRef = useRef<HTMLDivElement>(null);
   const [resumeText, setResumeText] = useState("");
   const [profile, setProfile] = useState<ResumeProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadMethod, setUploadMethod] = useState<"text" | "file">("text");
   const [fileError, setFileError] = useState<string | null>(null);
+
+  // Auto-scroll to extracted text when file is successfully parsed
+  useEffect(() => {
+    if (resumeText && uploadMethod === "file" && extractedTextRef.current) {
+      // Use setTimeout to ensure DOM is updated before scrolling
+      setTimeout(() => {
+        extractedTextRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [resumeText, uploadMethod]);
+
+  // Auto-scroll to error message when validation error occurs
+  useEffect(() => {
+    if (error && errorRef.current) {
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [error]);
+
+  // Auto-scroll to file error message when file validation error occurs
+  useEffect(() => {
+    if (fileError && fileErrorRef.current) {
+      setTimeout(() => {
+        fileErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [fileError]);
 
   const handleTextSubmit = useCallback(async () => {
     if (!resumeText.trim()) {
@@ -59,6 +90,10 @@ export default function UploadPageContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Clear any previous errors when a new file is selected
+    setFileError(null);
+    setError(null);
+
     // Validate file type (TXT and PDF supported)
     const validTypes = [
       "text/plain",
@@ -80,7 +115,6 @@ export default function UploadPageContent() {
       return;
     }
 
-    setFileError(null);
     setLoading(true);
 
     try {
@@ -337,7 +371,7 @@ export default function UploadPageContent() {
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3">
+            <div ref={errorRef} className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-slate-900 text-sm sm:text-base">Error</p>
@@ -348,7 +382,7 @@ export default function UploadPageContent() {
 
           {/* File Error Message */}
           {fileError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3">
+            <div ref={fileErrorRef} className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-slate-900 text-sm sm:text-base">File Error</p>
@@ -382,7 +416,10 @@ export default function UploadPageContent() {
                     </p>
                     <textarea
                       value={resumeText}
-                      onChange={(e) => setResumeText(e.target.value)}
+                      onChange={(e) => {
+                        setResumeText(e.target.value);
+                        setError(null); // Clear error when user starts typing
+                      }}
                       placeholder="Paste your resume here..."
                       className="textarea min-h-64 sm:min-h-80 text-sm sm:text-base"
                       disabled={loading}
@@ -399,9 +436,11 @@ export default function UploadPageContent() {
               ) : (
                 <div className="space-y-4">
                   <div className="card-elevated">
-                    <label className="block space-y-4">
+                    <label 
+                      htmlFor="file-input"
+                      className="block"
+                    >
                       <div 
-                        onClick={() => fileInputRef.current?.click()}
                         className="border-2 border-dashed border-slate-300 rounded-lg p-6 sm:p-8 md:p-12 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-colors"
                       >
                         <Upload className="w-8 sm:w-12 h-8 sm:h-12 text-slate-400 mx-auto mb-2 sm:mb-3" />
@@ -411,21 +450,22 @@ export default function UploadPageContent() {
                         <p className="text-xs sm:text-sm text-slate-600 mt-1">
                           PDF or TXT format (max 10MB)
                         </p>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".txt,.pdf,text/plain,application/pdf"
-                          onChange={handleFileUpload}
-                          disabled={loading}
-                          className="hidden"
-                        />
                       </div>
+                      <input
+                        id="file-input"
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".txt,.pdf,text/plain,application/pdf"
+                        onChange={handleFileUpload}
+                        disabled={loading}
+                        className="hidden"
+                      />
                     </label>
                   </div>
 
                   {/* Extracted Text Preview */}
                   {resumeText && (
-                    <div className="card-elevated space-y-4">
+                    <div ref={extractedTextRef} className="card-elevated space-y-4">
                       <div className="space-y-2">
                         <p className="font-semibold text-slate-900 text-sm sm:text-base">Extracted Resume Text</p>
                         <p className="text-small text-slate-600 text-xs sm:text-sm">
