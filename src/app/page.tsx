@@ -38,22 +38,22 @@ export default function Home() {
     <main className="min-h-screen flex flex-col">
       {/* Navigation */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="container flex items-center justify-between h-16 md:h-20">
-          <h1 className="text-xl md:text-2xl font-bold text-emerald-600">
+        <div className="container flex items-center justify-between h-14 sm:h-16 md:h-20">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-600">
             NextRole
           </h1>
           <Link href="/upload" className="btn btn-primary btn-sm">
             Get Started
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-3 sm:w-4 h-3 sm:h-4" />
           </Link>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="section container flex flex-col items-center text-center space-y-6 flex-1">
-        <div className="space-y-4 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
-            <Sparkles className="w-4 h-4" />
+      <section className="section container flex flex-col items-center text-center space-y-4 sm:space-y-6 flex-1">
+        <div className="space-y-3 sm:space-y-4 max-w-3xl px-2 sm:px-0">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-100 text-emerald-700 rounded-full text-xs sm:text-sm font-semibold">
+            <Sparkles className="w-3 sm:w-4 h-3 sm:h-4" />
             AI-Powered Career Strategy
           </div>
 
@@ -69,10 +69,10 @@ export default function Home() {
             generate a personalized roadmap tailored to your skill gaps.
           </p>
 
-          <div className="pt-4 space-y-3">
+          <div className="pt-2 sm:pt-4 space-y-2 sm:space-y-3">
             <Link href="/upload" className="btn btn-primary btn-lg mx-auto">
               Analyze Your Resume
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
             </Link>
             <p className="text-small text-slate-500">
               Takes 2-3 minutes. No credit card required.
@@ -83,19 +83,19 @@ export default function Home() {
 
       {/* Features Section */}
       <section className="section bg-white border-t border-slate-200">
-        <div className="container space-y-12">
-          <div className="text-center space-y-3">
+        <div className="container space-y-8 sm:space-y-12">
+          <div className="text-center space-y-2 sm:space-y-3">
             <h3 className="heading-2">How It Works</h3>
             <p className="text-subtitle text-slate-600 max-w-2xl mx-auto">
               Four intelligent steps to clarify your career strategy
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <div key={index} className="card p-6 space-y-4">
+                <div key={index} className="card space-y-4">
                   <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-emerald-600" />
                   </div>
@@ -114,8 +114,8 @@ export default function Home() {
 
       {/* Value Proposition Section */}
       <section className="section container">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
+          <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
             <h3 className="heading-2">Not a Job Portal</h3>
             <p className="text-body text-slate-600">
               NextRole is a <strong>career intelligence and planning tool</strong>
@@ -125,13 +125,13 @@ export default function Home() {
               naturally attracts the right opportunities.
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-emerald-600 font-bold text-sm">✓</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-slate-900 text-sm sm:text-base">
                     Strategic Thinking
                   </p>
                   <p className="text-small text-slate-600">
@@ -145,7 +145,7 @@ export default function Home() {
                   <span className="text-emerald-600 font-bold text-sm">✓</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-slate-900 text-sm sm:text-base">
                     Actionable Plans
                   </p>
                   <p className="text-small text-slate-600">
@@ -159,7 +159,7 @@ export default function Home() {
                   <span className="text-emerald-600 font-bold text-sm">✓</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-slate-900 text-sm sm:text-base">
                     Personal Growth
                   </p>
                   <p className="text-small text-slate-600">
@@ -170,13 +170,13 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-2xl p-12 border border-emerald-200 flex flex-col items-center justify-center min-h-96">
-            <div className="text-center space-y-4">
-              <div className="text-6xl">🎯</div>
+          <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-2xl p-6 sm:p-8 md:p-12 border border-emerald-200 flex flex-col items-center justify-center min-h-80 sm:min-h-96">
+            <div className="text-center space-y-3 sm:space-y-4">
+              <div className="text-5xl sm:text-6xl">🎯</div>
               <p className="heading-3 text-slate-900">
                 Clarity Over Confusion
               </p>
-              <p className="text-body text-slate-600 max-w-sm">
+              <p className="text-body text-slate-600 max-w-sm text-sm sm:text-base">
                 Every professional deserves a clear, strategic plan for their
                 next move. That&apos;s what we provide.
               </p>
@@ -187,24 +187,24 @@ export default function Home() {
 
       {/* CTA Section */}
       <section className="section bg-emerald-600 text-white">
-        <div className="container text-center space-y-6">
+        <div className="container text-center space-y-4 sm:space-y-6 px-3 sm:px-0">
           <h3 className="heading-2 text-white">
             Ready to Plan Your Next Role?
           </h3>
-          <p className="text-subtitle text-emerald-100 max-w-2xl mx-auto">
+          <p className="text-subtitle text-emerald-100 max-w-2xl mx-auto text-sm sm:text-base">
             Upload your resume now and get your personalized career strategy
             in minutes.
           </p>
           <Link href="/upload" className="btn bg-white text-emerald-600 hover:bg-slate-100 btn-lg mx-auto">
             Get Started Now
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
           </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 py-8 bg-white">
-        <div className="container text-center text-small text-slate-600">
+      <footer className="border-t border-slate-200 py-6 sm:py-8 bg-white">
+        <div className="container text-center text-small text-slate-600 px-3 sm:px-0">
           <p>
             © {new Date().getFullYear()} NextRole. Your career intelligence tool.
           </p>

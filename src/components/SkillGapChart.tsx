@@ -62,26 +62,26 @@ export function SkillGapChart({ analysis }: SkillGapChartProps) {
   };
 
   return (
-    <div className="card p-6 space-y-4">
+    <div className="card space-y-4">
       <div>
-        <h3 className="heading-4">Skill Gap Analysis</h3>
-        <p className="text-small text-slate-600 mt-1">
+        <h3 className="heading-4 text-lg sm:text-2xl">Skill Gap Analysis</h3>
+        <p className="text-small text-xs sm:text-sm text-slate-600 mt-1">
           Current vs. Required skill levels
         </p>
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={300} minHeight={300}>
         <BarChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+          margin={{ top: 20, right: 15, left: 10, bottom: 50 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis
             dataKey="name"
             angle={-45}
             textAnchor="end"
-            height={80}
-            tick={{ fontSize: 12 }}
+            height={70}
+            tick={{ fontSize: 10 }}
           />
           <YAxis
             domain={[0, 4]}
@@ -90,40 +90,41 @@ export function SkillGapChart({ analysis }: SkillGapChartProps) {
               const labels = ["None", "Beginner", "Intermediate", "Advanced", "Expert"];
               return labels[val];
             }}
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 10 }}
+            width={50}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ paddingTop: "20px" }} />
+          <Legend wrapperStyle={{ paddingTop: "20px", fontSize: "12px" }} />
           <Bar dataKey="current" fill="#10b981" name="Current Level" radius={[4, 4, 0, 0]} />
           <Bar dataKey="required" fill="#f59e0b" name="Required Level" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 rounded-lg">
-          <p className="text-small font-semibold text-slate-700">Overall Severity</p>
-          <p className="text-lg font-bold text-emerald-700 mt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 pt-2 sm:pt-4">
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-3 sm:p-4 rounded-lg">
+          <p className="text-xs sm:text-sm font-semibold text-slate-700">Overall Severity</p>
+          <p className="text-base sm:text-lg font-bold text-emerald-700 mt-0.5 sm:mt-1">
             {analysis.overallGapSeverity}
           </p>
         </div>
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
-          <p className="text-small font-semibold text-slate-700">Time to Close</p>
-          <p className="text-lg font-bold text-blue-700 mt-1">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 rounded-lg">
+          <p className="text-xs sm:text-sm font-semibold text-slate-700">Time to Close</p>
+          <p className="text-base sm:text-lg font-bold text-blue-700 mt-0.5 sm:mt-1">
             {analysis.estimatedTimeToClose}
           </p>
         </div>
-        <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-lg">
-          <p className="text-small font-semibold text-slate-700">Total Skills</p>
-          <p className="text-lg font-bold text-slate-700 mt-1">
+        <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 rounded-lg">
+          <p className="text-xs sm:text-sm font-semibold text-slate-700">Total Skills</p>
+          <p className="text-base sm:text-lg font-bold text-slate-700 mt-0.5 sm:mt-1">
             {analysis.skillGaps.length} skills
           </p>
         </div>
       </div>
 
       {/* Summary text */}
-      <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-        <p className="text-small text-slate-700">{analysis.summary}</p>
+      <div className="bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200">
+        <p className="text-xs sm:text-sm text-slate-700">{analysis.summary}</p>
       </div>
     </div>
   );
