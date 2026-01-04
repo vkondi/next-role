@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   CareerPathCard,
@@ -35,49 +35,7 @@ export default function DashboardPage() {
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initial load on mount (wait for API mode to be loaded)
-  useEffect(() => {
-    // Don't load until API mode is loaded from localStorage
-    if (!isLoaded) return;
-
-    // Load profile from localStorage
-    const storedProfile = localStorage.getItem("resumeProfile");
-    if (!storedProfile) {
-      setError("No resume profile found. Please upload your resume first.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const profile = JSON.parse(storedProfile) as ResumeProfile;
-      setResumeProfile(profile);
-      loadCareerPaths(profile);
-    } catch (err) {
-      setError("Failed to load resume profile");
-      setLoading(false);
-    }
-  }, [isLoaded]);
-
-  // Reload data when API mode changes (only if profile is already loaded)
-  useEffect(() => {
-    if (initialLoadRef.current) {
-      initialLoadRef.current = false;
-      return;
-    }
-    if (!resumeProfile) return;
-    
-    setLoading(true);
-    setCareerPaths([]);
-    setSelectedPathId(null);
-    setSkillGapAnalysis(null);
-    setRoadmap(null);
-    setError(null);
-    
-    loadCareerPaths(resumeProfile);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
-
-  const loadCareerPaths = async (profile: ResumeProfile) => {
+  const loadCareerPaths = useCallback(async (profile: ResumeProfile) => {
     try {
       const url = new URL("/api/career-paths/generate", window.location.origin);
       if (mode === "mock") {
@@ -105,7 +63,48 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mode]);
+
+  // Initial load on mount (wait for API mode to be loaded)
+  useEffect(() => {
+    // Don't load until API mode is loaded from localStorage
+    if (!isLoaded) return;
+
+    // Load profile from localStorage
+    const storedProfile = localStorage.getItem("resumeProfile");
+    if (!storedProfile) {
+      setError("No resume profile found. Please upload your resume first.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const profile = JSON.parse(storedProfile) as ResumeProfile;
+      setResumeProfile(profile);
+      loadCareerPaths(profile);
+    } catch (err) {
+      setError("Failed to load resume profile");
+      setLoading(false);
+    }
+  }, [isLoaded, loadCareerPaths]);
+
+  // Reload data when API mode changes (only if profile is already loaded)
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      return;
+    }
+    if (!resumeProfile) return;
+    
+    setLoading(true);
+    setCareerPaths([]);
+    setSelectedPathId(null);
+    setSkillGapAnalysis(null);
+    setRoadmap(null);
+    setError(null);
+    
+    loadCareerPaths(resumeProfile);
+  }, [mode, resumeProfile, loadCareerPaths]);
 
   const handlePathSelect = async (pathId: string) => {
     setSelectedPathId(pathId);
