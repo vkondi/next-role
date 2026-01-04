@@ -11,6 +11,7 @@ import { callDeepseekAPI } from "@/lib/api/deepseek";
 /**
  * Minimal prompt - Returns quick overview without detailed reasoning
  * This is MUCH faster since we don't ask for lengthy explanations
+ * OPTIMIZED: Short JSON field names for output compression
  */
 export function createCareerPathMinimalPrompt(
   resumeProfile: ResumeProfile,
@@ -18,8 +19,8 @@ export function createCareerPathMinimalPrompt(
 ): string {
   return `Generate ${numberOfPaths} career paths for: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y), ${resumeProfile.techStack.join(", ")}.
 
-Return ONLY this JSON array, no text:
-[{"roleId":"path_001","roleName":"Role","description":"1 sentence","marketDemandScore":85,"industryAlignment":90,"requiredSkills":["Skill1","Skill2","Skill3","Skill4","Skill5"]}]`;
+Return ONLY valid JSON array, no text:
+[{"id":"p_1","name":"Role","desc":"1 line","mkt":85,"ind":90,"skl":["S1","S2","S3"]}]`;
 }
 
 /**
@@ -58,7 +59,8 @@ REQUIREMENTS:
 }
 
 /**
- * Parses minimal career paths response - FAST, no validation
+ * Parses minimal career paths response - FAST, with field name mapping
+ * Handles both condensed and full field names
  */
 export async function parseCareerPathMinimalResponse(
   responseText: string
@@ -72,14 +74,22 @@ export async function parseCareerPathMinimalResponse(
     cleanedText = cleanedText.trim();
 
     // Fast parse without Zod validation
-    const parsed = JSON.parse(cleanedText) as CareerPathMinimal[];
+    const parsed = JSON.parse(cleanedText) as Array<Record<string, unknown>>;
     
     // Quick sanity check - ensure it's an array with expected fields
     if (!Array.isArray(parsed) || parsed.length === 0) {
       throw new Error("Response is not a valid array");
     }
     
-    return parsed;
+    // Map condensed field names to full structure
+    return parsed.map((item) => ({
+      roleId: (item.id || item.roleId) as string,
+      roleName: (item.name || item.roleName) as string,
+      description: (item.desc || item.description) as string,
+      marketDemandScore: (item.mkt || item.marketDemandScore) as number,
+      industryAlignment: (item.ind || item.industryAlignment) as number,
+      requiredSkills: (item.skl || item.requiredSkills) as string[],
+    })) as CareerPathMinimal[];
   } catch (error) {
     throw new Error(
       `Failed to parse career paths: ${error instanceof Error ? error.message : String(error)}`
