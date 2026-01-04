@@ -105,18 +105,22 @@ setInterval(() => {
 
 /**
  * Higher-order function to wrap route handlers with rate limiting
- * Only applies rate limit to real API calls, not mock requests
+ * Only applies rate limit to real API calls with AI integration, not mock requests
  * @param handler - The actual route handler function
- * @returns Wrapped handler that checks rate limit before executing (skip for mock=true)
+ * @param requiresAiIntegration - Whether this endpoint requires AI integration (default: true for wrapped endpoints)
+ * @returns Wrapped handler that checks rate limit before executing (skip for mock=true or no AI integration)
  */
 export function withRateLimit(
-  handler: (request: any) => Promise<any>
+  handler: (request: any) => Promise<any>,
+  requiresAiIntegration: boolean = true
 ): (request: any) => Promise<any> {
   return async (request: any) => {
-    // Skip rate limiting for mock requests
+    // Only apply rate limiting if:
+    // 1. Endpoint requires AI integration AND
+    // 2. Not in mock mode
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
     
-    if (!useMock) {
+    if (requiresAiIntegration && !useMock) {
       const clientIp = getClientIp(request.headers);
       const rateLimitResult = checkRateLimit(clientIp);
 

@@ -64,4 +64,4 @@ const handler = async (request: NextRequest) => {
   }
 };
 
-export const POST = withRateLimit(handler);
+export const POST = withRateLimit(handler); // Uses AI to analyze skill gaps
