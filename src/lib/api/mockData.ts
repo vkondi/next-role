@@ -12,6 +12,7 @@ import type {
 
 export function generateMockResumeProfile(_resumeText: string): ResumeProfile {
   return {
+    name: "Alex Johnson",
     currentRole: "Senior Software Engineer",
     yearsOfExperience: 5,
     techStack: [

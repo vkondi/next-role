@@ -3,11 +3,9 @@
  * Allows users to upload and preview their resume data
  */
 
-import dynamic from "next/dynamic";
+"use client";
 
-const UploadPageContent = dynamic(() => import("./page-content"), {
-  ssr: false,
-});
+import UploadPageContent from "./page-content";
 
 export default function UploadPage() {
   return <UploadPageContent />;

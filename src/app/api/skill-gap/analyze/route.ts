@@ -7,8 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { SkillGapAnalyzerRequestSchema } from "@/lib/ai/schemas";
 import { analyzeSkillGaps } from "@/lib/ai/prompts/skillGapAnalyzer";
 import { generateMockSkillGapAnalysis } from "@/lib/api/mockData";
+import { withRateLimit } from "@/lib/api/rateLimiter";
 
-export async function POST(request: NextRequest) {
+const handler = async (request: NextRequest) => {
   try {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
@@ -61,4 +62,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withRateLimit(handler); // Uses AI to analyze skill gaps

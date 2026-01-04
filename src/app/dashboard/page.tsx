@@ -5,15 +5,18 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   CareerPathCard,
   SkillGapChart,
   RoadmapTimeline,
   ApiModeToggle,
 } from "@/components";
-import { useApiMode } from "@/lib/hooks/useApiMode";
+import { useApiMode } from "@/lib/context/ApiModeContext";
+import { useResume } from "@/lib/context/ResumeContext";
+import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
 import type {
   ResumeProfile,
   CareerPath,
@@ -23,9 +26,10 @@ import type {
 import { AlertCircle, ArrowLeft } from "lucide-react";
 
 export default function DashboardPage() {
-  const { mode, isLoaded } = useApiMode();
+  const router = useRouter();
+  const { mode } = useApiMode();
+  const { resumeProfile } = useResume();
   const initialLoadRef = useRef(true);
-  const [resumeProfile, setResumeProfile] = useState<ResumeProfile | null>(null);
   const [careerPaths, setCareerPaths] = useState<CareerPath[]>([]);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const [skillGapAnalysis, setSkillGapAnalysis] = useState<SkillGapAnalysis | null>(null);
@@ -35,160 +39,115 @@ export default function DashboardPage() {
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initial load on mount (wait for API mode to be loaded)
-  useEffect(() => {
-    // Don't load until API mode is loaded from localStorage
-    if (!isLoaded) return;
-
-    // Load profile from localStorage
-    const storedProfile = localStorage.getItem("resumeProfile");
-    if (!storedProfile) {
-      setError("No resume profile found. Please upload your resume first.");
+  // Fetch career paths based on profile and API mode
+  const fetchCareerPaths = useCallback(async (profile: ResumeProfile, apiMode: string) => {
+    try {
+      const url = buildApiUrl("/api/career-paths/generate", apiMode === "mock");
+      const paths = await apiRequest<CareerPath[]>(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5 }),
+      });
+      setCareerPaths(paths);
+      // Auto-select first path
+      setSelectedPathId(paths[0].roleId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // Unified effect: Handle initial load and mode changes
+  useEffect(() => {
+    // Check if user has resume context
+    if (!resumeProfile) {
+      // If first time loading, redirect to upload
+      if (initialLoadRef.current) {
+        initialLoadRef.current = false;
+        router.push("/upload");
+      }
       return;
     }
 
-    try {
-      const profile = JSON.parse(storedProfile) as ResumeProfile;
-      setResumeProfile(profile);
-      loadCareerPaths(profile);
-    } catch (err) {
-      setError("Failed to load resume profile");
-      setLoading(false);
-    }
-  }, [isLoaded]);
-
-  // Reload data when API mode changes (only if profile is already loaded)
-  useEffect(() => {
+    // First time: load career paths
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
+      setLoading(true);
+      fetchCareerPaths(resumeProfile, mode);
       return;
     }
-    if (!resumeProfile) return;
-    
+
+    // Subsequent times: reload when mode changes
     setLoading(true);
     setCareerPaths([]);
     setSelectedPathId(null);
     setSkillGapAnalysis(null);
     setRoadmap(null);
     setError(null);
-    
-    loadCareerPaths(resumeProfile);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
 
-  const loadCareerPaths = async (profile: ResumeProfile) => {
-    try {
-      const url = new URL("/api/career-paths/generate", window.location.origin);
-      if (mode === "mock") {
-        url.searchParams.set("mock", "true");
+    fetchCareerPaths(resumeProfile, mode);
+  }, [mode, resumeProfile, fetchCareerPaths, router]);
+
+  const loadRoadmap = useCallback(
+    async (profile: ResumeProfile, path: CareerPath, gaps: SkillGapAnalysis) => {
+      setRoadmapLoading(true);
+      try {
+        const url = buildApiUrl("/api/roadmap/generate", mode === "mock");
+        const roadmapData = await apiRequest<CareerRoadmap>(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resumeProfile: profile,
+            careerPath: path,
+            skillGapAnalysis: gaps,
+            timelineMonths: 6,
+          }),
+        });
+        setRoadmap(roadmapData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setRoadmapLoading(false);
       }
+    },
+    [mode]
+  );
 
-      const response = await fetch(url.toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5 }),
-      });
+  const handlePathSelect = useCallback(
+    async (pathId: string) => {
+      setSelectedPathId(pathId);
+      setSkillGapAnalysis(null);
+      setRoadmap(null);
+      setError(null);
 
-      if (!response.ok) throw new Error("Failed to generate career paths");
+      if (!resumeProfile) return;
 
-      const data = await response.json();
-      if (data.success) {
-        setCareerPaths(data.data);
-        // Auto-select first path
-        setSelectedPathId(data.data[0].roleId);
-      } else {
-        setError(data.error || "Failed to generate career paths");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
+      const selectedPath = careerPaths.find((p) => p.roleId === pathId);
+      if (!selectedPath) return;
 
-  const handlePathSelect = async (pathId: string) => {
-    setSelectedPathId(pathId);
-    setSkillGapAnalysis(null);
-    setRoadmap(null);
-    setError(null);
-
-    if (!resumeProfile) return;
-
-    const selectedPath = careerPaths.find((p) => p.roleId === pathId);
-    if (!selectedPath) return;
-
-    // Load skill gap analysis
-    setSkillGapLoading(true);
-    try {
-      const url = new URL("/api/skill-gap/analyze", window.location.origin);
-      if (mode === "mock") {
-        url.searchParams.set("mock", "true");
-      }
-
-      const response = await fetch(url.toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resumeProfile,
-          careerPath: selectedPath,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Failed to analyze skill gaps");
-
-      const data = await response.json();
-      if (data.success) {
-        setSkillGapAnalysis(data.data);
+      // Load skill gap analysis
+      setSkillGapLoading(true);
+      try {
+        const url = buildApiUrl("/api/skill-gap/analyze", mode === "mock");
+        const gapAnalysis = await apiRequest<SkillGapAnalysis>(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resumeProfile,
+            careerPath: selectedPath,
+          }),
+        });
+        setSkillGapAnalysis(gapAnalysis);
         setSkillGapLoading(false);
-        loadRoadmap(resumeProfile, selectedPath, data.data);
-      } else {
-        setError(data.error || "Failed to analyze skill gaps");
+        loadRoadmap(resumeProfile, selectedPath, gapAnalysis);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
         setSkillGapLoading(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-      setSkillGapLoading(false);
-    }
-  };
-
-  const loadRoadmap = async (
-    profile: ResumeProfile,
-    path: CareerPath,
-    gaps: SkillGapAnalysis
-  ) => {
-    setRoadmapLoading(true);
-    try {
-      const url = new URL("/api/roadmap/generate", window.location.origin);
-      if (mode === "mock") {
-        url.searchParams.set("mock", "true");
-      }
-
-      const response = await fetch(url.toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resumeProfile: profile,
-          careerPath: path,
-          skillGapAnalysis: gaps,
-          timelineMonths: 6,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Failed to generate roadmap");
-
-      const data = await response.json();
-      if (data.success) {
-        setRoadmap(data.data);
-      } else {
-        setError(data.error || "Failed to generate roadmap");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setRoadmapLoading(false);
-    }
-  };
+    },
+    [mode, resumeProfile, careerPaths, loadRoadmap]
+  );
 
   if (error && !resumeProfile) {
     return (
@@ -204,13 +163,14 @@ export default function DashboardPage() {
     );
   }
 
-  if (loading) {
+  // Show loading while checking for resume context on initial load
+  if (loading || !resumeProfile) {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
         <div className="text-center space-y-4">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-600 animate-pulse" />
           <p className="text-lg font-semibold text-slate-900">
-            Analyzing your career profile...
+            Loading your career analysis...
           </p>
           <p className="text-sm text-slate-600">This typically takes a few seconds</p>
         </div>
@@ -246,7 +206,11 @@ export default function DashboardPage() {
         {/* Header */}
         {resumeProfile && (
           <div className="space-y-4">
-            <h1 className="heading-1">Your Career Strategy</h1>
+            <h1 className="heading-1">
+              {resumeProfile.name 
+                ? `${resumeProfile.name}'s Career Strategy` 
+                : "Your Career Strategy"}
+            </h1>
             <p className="text-subtitle text-slate-600">
               Based on your profile as a {resumeProfile.currentRole} with{" "}
               {resumeProfile.yearsOfExperience} years of experience

@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { ArrowRight, Upload, AlertCircle } from "lucide-react";
 import { ApiModeToggle } from "@/components";
-import { useApiMode } from "@/lib/hooks/useApiMode";
+import { useApiMode } from "@/lib/context/ApiModeContext";
+import { useResume } from "@/lib/context/ResumeContext";
+import { validateResumeText } from "@/lib/api/resumeValidation";
+import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
 import type { ResumeProfile } from "@/lib/types";
 
 export default function UploadPageContent() {
   const { mode } = useApiMode();
+  const { setResumeProfile } = useResume();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [resumeText, setResumeText] = useState("");
   const [profile, setProfile] = useState<ResumeProfile | null>(null);
@@ -17,55 +21,62 @@ export default function UploadPageContent() {
   const [uploadMethod, setUploadMethod] = useState<"text" | "file">("text");
   const [fileError, setFileError] = useState<string | null>(null);
 
-  const handleTextSubmit = async () => {
+  const handleTextSubmit = useCallback(async () => {
     if (!resumeText.trim()) {
       setError("Please paste your resume content");
       return;
     }
 
+    // Validate resume text
+    const validation = validateResumeText(resumeText);
+    if (!validation.isValid) {
+      setError(validation.error || "Invalid resume content");
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setFileError(null); // Clear any file errors
 
     try {
-      const url = new URL("/api/resume/interpret", window.location.origin);
-      if (mode === "mock") {
-        url.searchParams.set("mock", "true");
-      }
-
-      const response = await fetch(url.toString(), {
+      const url = buildApiUrl("/api/resume/interpret", mode === "mock");
+      const profile = await apiRequest<ResumeProfile>(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to interpret resume");
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setProfile(data.data);
-      } else {
-        setError(data.error || "Failed to process resume");
-      }
+      setProfile(profile);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      console.error("Resume analysis error:", errorMessage, err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [mode, resumeText]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
+    // Validate file type (TXT and PDF supported)
     const validTypes = [
       "text/plain",
+      "application/pdf",
     ];
     
-    if (!validTypes.includes(file.type) && !file.name.endsWith(".txt")) {
-      setFileError("Please upload a TXT file");
+    const isTxtFile = file.name.endsWith(".txt");
+    const isPdfFile = file.name.endsWith(".pdf");
+    
+    if (!validTypes.includes(file.type) && !isTxtFile && !isPdfFile) {
+      setFileError("Please upload a TXT or PDF file");
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxFileSize = 10 * 1024 * 1024;
+    if (file.size > maxFileSize) {
+      setFileError("File size exceeds 10MB limit. Please choose a smaller file.");
       return;
     }
 
@@ -123,7 +134,9 @@ export default function UploadPageContent() {
           <div className="space-y-8">
             {/* Header */}
             <div className="space-y-2">
-              <h1 className="heading-1">Your Career Profile</h1>
+              <h1 className="heading-1">
+                {profile.name ? `${profile.name}, Your Career Profile` : "Your Career Profile"}
+              </h1>
               <p className="text-subtitle text-slate-600">
                 Here&apos;s what we extracted from your resume
               </p>
@@ -258,13 +271,8 @@ export default function UploadPageContent() {
                 href="/dashboard"
                 className="btn btn-primary"
                 onClick={() => {
-                  // Store profile in session/localStorage for dashboard
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem(
-                      "resumeProfile",
-                      JSON.stringify(profile)
-                    );
-                  }
+                  // Store profile in context for dashboard
+                  setResumeProfile(profile);
                 }}
               >
                 Continue to Analysis
@@ -401,12 +409,12 @@ export default function UploadPageContent() {
                           Choose a file to upload
                         </p>
                         <p className="text-small text-slate-600 mt-1">
-                          TXT format (max 5MB)
+                          PDF or TXT format (max 10MB)
                         </p>
                         <input
                           ref={fileInputRef}
                           type="file"
-                          accept=".txt,text/plain"
+                          accept=".txt,.pdf,text/plain,application/pdf"
                           onChange={handleFileUpload}
                           disabled={loading}
                           className="hidden"
@@ -427,26 +435,28 @@ export default function UploadPageContent() {
                       <div className="bg-slate-50 rounded-lg p-4 max-h-48 overflow-y-auto border border-slate-200">
                         <p className="text-sm text-slate-700 whitespace-pre-wrap">{resumeText}</p>
                       </div>
-                      <button
-                        onClick={handleTextSubmit}
-                        disabled={loading || !resumeText.trim()}
-                        className="btn btn-primary w-full"
-                      >
-                        {loading ? "Processing..." : "Analyze Resume"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setResumeText("");
-                          setFileError(null);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = "";
-                          }
-                        }}
-                        disabled={loading}
-                        className="btn btn-secondary w-full"
-                      >
-                        Clear & Upload Different File
-                      </button>
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={handleTextSubmit}
+                          disabled={loading || !resumeText.trim()}
+                          className="btn btn-primary flex-1"
+                        >
+                          {loading ? "Processing..." : "Analyze Resume"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setResumeText("");
+                            setFileError(null);
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = "";
+                            }
+                          }}
+                          disabled={loading}
+                          className="btn btn-secondary flex-1"
+                        >
+                          Clear & Upload Different File
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -7,6 +7,7 @@
  * Represents a user's extracted career profile from their resume
  */
 export interface ResumeProfile {
+  name?: string;
   currentRole: string;
   yearsOfExperience: number;
   techStack: string[];

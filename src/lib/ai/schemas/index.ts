@@ -21,6 +21,7 @@ const EffortRewardSchema = z.enum(["Low", "Medium", "High"]);
  * ResumeProfile Schema - Validates extracted resume data
  */
 export const ResumeProfileSchema = z.object({
+  name: z.string().optional().describe("Person's full name from resume"),
   currentRole: z.string().describe("Current job title or role"),
   yearsOfExperience: z
     .number()
