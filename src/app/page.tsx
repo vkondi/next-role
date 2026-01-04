@@ -206,7 +206,7 @@ export default function Home() {
       <footer className="border-t border-slate-200 py-8 bg-white">
         <div className="container text-center text-small text-slate-600">
           <p>
-            © 2024 NextRole. Your career intelligence tool.
+            © {new Date().getFullYear()} NextRole. Your career intelligence tool.
           </p>
         </div>
       </footer>

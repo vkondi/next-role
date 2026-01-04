@@ -5,15 +5,11 @@
 
 "use client";
 
-import { useApiMode } from "@/lib/hooks/useApiMode";
+import { useApiMode } from "@/lib/context/ApiModeContext";
 import { Settings } from "lucide-react";
 
 export function ApiModeToggle() {
-  const { mode, setApiMode, isLoaded } = useApiMode();
-
-  if (!isLoaded) {
-    return null; // Don't render until hydrated
-  }
+  const { mode, setMode } = useApiMode();
 
   return (
     <div className="fixed bottom-6 right-6 z-40">
@@ -23,7 +19,7 @@ export function ApiModeToggle() {
           <span className="text-sm font-medium text-slate-700">API Mode:</span>
           <div className="flex gap-2">
             <button
-              onClick={() => setApiMode("mock")}
+              onClick={() => setMode("mock")}
               className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
                 mode === "mock"
                   ? "bg-emerald-600 text-white"
@@ -33,7 +29,7 @@ export function ApiModeToggle() {
               Mock
             </button>
             <button
-              onClick={() => setApiMode("real")}
+              onClick={() => setMode("real")}
               className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
                 mode === "real"
                   ? "bg-blue-600 text-white"

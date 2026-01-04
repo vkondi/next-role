@@ -22,6 +22,7 @@ ${resumeText}
 
 Return a JSON object with this exact structure:
 {
+  "name": "string - person's name (optional, null if not found)",
   "currentRole": "string - current/most recent job title",
   "yearsOfExperience": number - total years of professional experience,
   "techStack": ["array of technologies, programming languages, tools"],

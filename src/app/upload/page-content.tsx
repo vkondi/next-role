@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { ArrowRight, Upload, AlertCircle } from "lucide-react";
 import { ApiModeToggle } from "@/components";
-import { useApiMode } from "@/lib/hooks/useApiMode";
+import { useApiMode } from "@/lib/context/ApiModeContext";
+import { useResume } from "@/lib/context/ResumeContext";
+import { validateResumeText } from "@/lib/api/resumeValidation";
 import type { ResumeProfile } from "@/lib/types";
 
 export default function UploadPageContent() {
   const { mode } = useApiMode();
+  const { setResumeProfile } = useResume();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [resumeText, setResumeText] = useState("");
   const [profile, setProfile] = useState<ResumeProfile | null>(null);
@@ -17,9 +20,16 @@ export default function UploadPageContent() {
   const [uploadMethod, setUploadMethod] = useState<"text" | "file">("text");
   const [fileError, setFileError] = useState<string | null>(null);
 
-  const handleTextSubmit = async () => {
+  const handleTextSubmit = useCallback(async () => {
     if (!resumeText.trim()) {
       setError("Please paste your resume content");
+      return;
+    }
+
+    // Validate resume text
+    const validation = validateResumeText(resumeText);
+    if (!validation.isValid) {
+      setError(validation.error || "Invalid resume content");
       return;
     }
 
@@ -53,7 +63,7 @@ export default function UploadPageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mode, resumeText]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -123,7 +133,9 @@ export default function UploadPageContent() {
           <div className="space-y-8">
             {/* Header */}
             <div className="space-y-2">
-              <h1 className="heading-1">Your Career Profile</h1>
+              <h1 className="heading-1">
+                {profile.name ? `${profile.name}, Your Career Profile` : "Your Career Profile"}
+              </h1>
               <p className="text-subtitle text-slate-600">
                 Here&apos;s what we extracted from your resume
               </p>
@@ -258,13 +270,8 @@ export default function UploadPageContent() {
                 href="/dashboard"
                 className="btn btn-primary"
                 onClick={() => {
-                  // Store profile in session/localStorage for dashboard
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem(
-                      "resumeProfile",
-                      JSON.stringify(profile)
-                    );
-                  }
+                  // Store profile in context for dashboard
+                  setResumeProfile(profile);
                 }}
               >
                 Continue to Analysis
