@@ -35,6 +35,7 @@ export default function UploadPageContent() {
 
     setLoading(true);
     setError(null);
+    setFileError(null); // Clear any file errors
 
     try {
       const url = new URL("/api/resume/interpret", window.location.origin);
@@ -69,13 +70,24 @@ export default function UploadPageContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
+    // Validate file type (TXT and PDF supported)
     const validTypes = [
       "text/plain",
+      "application/pdf",
     ];
     
-    if (!validTypes.includes(file.type) && !file.name.endsWith(".txt")) {
-      setFileError("Please upload a TXT file");
+    const isTxtFile = file.name.endsWith(".txt");
+    const isPdfFile = file.name.endsWith(".pdf");
+    
+    if (!validTypes.includes(file.type) && !isTxtFile && !isPdfFile) {
+      setFileError("Please upload a TXT or PDF file");
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxFileSize = 10 * 1024 * 1024;
+    if (file.size > maxFileSize) {
+      setFileError("File size exceeds 10MB limit. Please choose a smaller file.");
       return;
     }
 
@@ -408,12 +420,12 @@ export default function UploadPageContent() {
                           Choose a file to upload
                         </p>
                         <p className="text-small text-slate-600 mt-1">
-                          TXT format (max 5MB)
+                          PDF or TXT format (max 10MB)
                         </p>
                         <input
                           ref={fileInputRef}
                           type="file"
-                          accept=".txt,text/plain"
+                          accept=".txt,.pdf,text/plain,application/pdf"
                           onChange={handleFileUpload}
                           disabled={loading}
                           className="hidden"
@@ -434,26 +446,28 @@ export default function UploadPageContent() {
                       <div className="bg-slate-50 rounded-lg p-4 max-h-48 overflow-y-auto border border-slate-200">
                         <p className="text-sm text-slate-700 whitespace-pre-wrap">{resumeText}</p>
                       </div>
-                      <button
-                        onClick={handleTextSubmit}
-                        disabled={loading || !resumeText.trim()}
-                        className="btn btn-primary w-full"
-                      >
-                        {loading ? "Processing..." : "Analyze Resume"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setResumeText("");
-                          setFileError(null);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = "";
-                          }
-                        }}
-                        disabled={loading}
-                        className="btn btn-secondary w-full"
-                      >
-                        Clear & Upload Different File
-                      </button>
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={handleTextSubmit}
+                          disabled={loading || !resumeText.trim()}
+                          className="btn btn-primary flex-1"
+                        >
+                          {loading ? "Processing..." : "Analyze Resume"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setResumeText("");
+                            setFileError(null);
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = "";
+                            }
+                          }}
+                          disabled={loading}
+                          className="btn btn-secondary flex-1"
+                        >
+                          Clear & Upload Different File
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
