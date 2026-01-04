@@ -104,8 +104,8 @@ export function CareerPathCard({
 
         {/* Selection indicator */}
         {isSelected && (
-          <div className="pt-2 sm:pt-3 border-t border-emerald-200">
-            <p className="text-xs sm:text-sm font-semibold text-emerald-600">
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-emerald-200">
+            <p className="text-xs sm:text-sm font-semibold text-emerald-600 text-center">
               ✓ Selected
             </p>
           </div>

@@ -3,7 +3,7 @@
  * Horizontal scrollable carousel of minimal career path cards
  */
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { CareerPathCardMinimal } from "./CareerPathCardMinimal";
 import type { CareerPathMinimal } from "@/lib/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -44,6 +44,24 @@ export function CareerPathsCarousel({
     });
     setTimeout(checkScroll, 300);
   };
+
+  // Auto-scroll to selected card when it changes
+  useEffect(() => {
+    if (!selectedPathId || !scrollContainerRef.current) return;
+
+    const selectedCard = scrollContainerRef.current.querySelector(
+      `[data-path-id="${selectedPathId}"]`
+    ) as HTMLElement;
+
+    if (selectedCard) {
+      selectedCard.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+      setTimeout(checkScroll, 300);
+    }
+  }, [selectedPathId]);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -93,20 +111,21 @@ export function CareerPathsCarousel({
           )}
 
           {/* Cards Container - with responsive padding for buttons */}
-          <div className="px-0 sm:px-12">
+          <div className="px-0 sm:px-12 py-2">
             <div
               ref={scrollContainerRef}
               onScroll={checkScroll}
-              className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth pb-2 [-webkit-scrollbar:none] [scrollbar-width:none]"
+              className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth pb-2 px-2 [-webkit-scrollbar:none] [scrollbar-width:none]"
               style={{ scrollBehavior: "smooth" }}
             >
               {paths.map((path) => (
-                <CareerPathCardMinimal
-                  key={path.roleId}
-                  path={path}
-                  isSelected={selectedPathId === path.roleId}
-                  onSelect={onSelect}
-                />
+                <div key={path.roleId} data-path-id={path.roleId} className="pt-2">
+                  <CareerPathCardMinimal
+                    path={path}
+                    isSelected={selectedPathId === path.roleId}
+                    onSelect={onSelect}
+                  />
+                </div>
               ))}
             </div>
           </div>
