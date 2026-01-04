@@ -32,7 +32,8 @@ export default function DashboardPage() {
   const initialLoadRef = useRef(true);
   const [careerPaths, setCareerPaths] = useState<CareerPath[]>([]);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
-  const [skillGapAnalysis, setSkillGapAnalysis] = useState<SkillGapAnalysis | null>(null);
+  const [skillGapAnalysis, setSkillGapAnalysis] =
+    useState<SkillGapAnalysis | null>(null);
   const [roadmap, setRoadmap] = useState<CareerRoadmap | null>(null);
   const [loading, setLoading] = useState(true);
   const [skillGapLoading, setSkillGapLoading] = useState(false);
@@ -40,23 +41,29 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch career paths based on profile and API mode
-  const fetchCareerPaths = useCallback(async (profile: ResumeProfile, apiMode: string) => {
-    try {
-      const url = buildApiUrl("/api/career-paths/generate", apiMode === "mock");
-      const paths = await apiRequest<CareerPath[]>(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5 }),
-      });
-      setCareerPaths(paths);
-      // Auto-select first path
-      setSelectedPathId(paths[0].roleId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const fetchCareerPaths = useCallback(
+    async (profile: ResumeProfile, apiMode: string) => {
+      try {
+        const url = buildApiUrl(
+          "/api/career-paths/generate",
+          apiMode === "mock"
+        );
+        const paths = await apiRequest<CareerPath[]>(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5 }),
+        });
+        setCareerPaths(paths);
+        // Auto-select first path
+        setSelectedPathId(paths[0].roleId);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   // Unified effect: Handle initial load and mode changes
   useEffect(() => {
@@ -79,18 +86,24 @@ export default function DashboardPage() {
     }
 
     // Subsequent times: reload when mode changes
-    setLoading(true);
-    setCareerPaths([]);
-    setSelectedPathId(null);
-    setSkillGapAnalysis(null);
-    setRoadmap(null);
-    setError(null);
+    if (!loading) {
+      setLoading(true);
+      setCareerPaths([]);
+      setSelectedPathId(null);
+      setSkillGapAnalysis(null);
+      setRoadmap(null);
+      setError(null);
 
-    fetchCareerPaths(resumeProfile, mode);
+      fetchCareerPaths(resumeProfile, mode);
+    }
   }, [mode, resumeProfile, fetchCareerPaths, router]);
 
   const loadRoadmap = useCallback(
-    async (profile: ResumeProfile, path: CareerPath, gaps: SkillGapAnalysis) => {
+    async (
+      profile: ResumeProfile,
+      path: CareerPath,
+      gaps: SkillGapAnalysis
+    ) => {
       setRoadmapLoading(true);
       try {
         const url = buildApiUrl("/api/roadmap/generate", mode === "mock");
@@ -172,7 +185,9 @@ export default function DashboardPage() {
           <p className="text-lg font-semibold text-slate-900">
             Loading your career analysis...
           </p>
-          <p className="text-sm text-slate-600">This typically takes a few seconds</p>
+          <p className="text-sm text-slate-600">
+            This typically takes a few seconds
+          </p>
         </div>
       </main>
     );
@@ -207,8 +222,8 @@ export default function DashboardPage() {
         {resumeProfile && (
           <div className="space-y-4">
             <h1 className="heading-1">
-              {resumeProfile.name 
-                ? `${resumeProfile.name}'s Career Strategy` 
+              {resumeProfile.name
+                ? `${resumeProfile.name}'s Career Strategy`
                 : "Your Career Strategy"}
             </h1>
             <p className="text-subtitle text-slate-600">
@@ -254,8 +269,12 @@ export default function DashboardPage() {
               <div className="flex items-center justify-center gap-4">
                 <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 animate-pulse" />
                 <div className="space-y-2">
-                  <p className="text-lg font-semibold text-slate-900">Analyzing skill gaps...</p>
-                  <p className="text-sm text-slate-600">This may take a few moments while we assess your skills</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    Analyzing skill gaps...
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    This may take a few moments while we assess your skills
+                  </p>
                 </div>
               </div>
             </div>
@@ -266,19 +285,6 @@ export default function DashboardPage() {
         {skillGapAnalysis && !skillGapLoading && (
           <div className="space-y-6">
             <SkillGapChart analysis={skillGapAnalysis} />
-          </div>
-        )}
-
-        {/* Roadmap Loading Indicator */}
-        {skillGapAnalysis && roadmapLoading && (
-          <div className="card-elevated p-8">
-            <div className="flex items-center justify-center gap-4">
-              <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 animate-pulse" />
-              <div className="space-y-2">
-                <p className="text-lg font-semibold text-slate-900">Generating your career roadmap...</p>
-                <p className="text-sm text-slate-600">Creating a personalized 6-month development plan</p>
-              </div>
-            </div>
           </div>
         )}
 
@@ -315,26 +321,44 @@ export default function DashboardPage() {
                     </span>
                   </div>
 
-                  {gap.learningResources && gap.learningResources.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      <p className="text-sm font-semibold text-slate-700 mb-2">
-                        Learning Resources:
-                      </p>
-                      <ul className="space-y-1">
-                        {gap.learningResources.map((resource, i) => (
-                          <li
-                            key={i}
-                            className="text-sm text-slate-600 flex items-start gap-2"
-                          >
-                            <span className="text-emerald-600 mt-1">•</span>
-                            {resource}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {gap.learningResources &&
+                    gap.learningResources.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <p className="text-sm font-semibold text-slate-700 mb-2">
+                          Learning Resources:
+                        </p>
+                        <ul className="space-y-1">
+                          {gap.learningResources.map((resource, i) => (
+                            <li
+                              key={i}
+                              className="text-sm text-slate-600 flex items-start gap-2"
+                            >
+                              <span className="text-emerald-600 mt-1">•</span>
+                              {resource}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Roadmap Loading Indicator */}
+        {skillGapAnalysis && roadmapLoading && (
+          <div className="card-elevated p-8">
+            <div className="flex items-center justify-center gap-4">
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 animate-pulse" />
+              <div className="space-y-2">
+                <p className="text-lg font-semibold text-slate-900">
+                  Generating your career roadmap...
+                </p>
+                <p className="text-sm text-slate-600">
+                  Creating a personalized 6-month development plan
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -350,7 +374,8 @@ export default function DashboardPage() {
         <div className="card p-6 space-y-4 text-center">
           <p className="heading-4">Ready to Get Started?</p>
           <p className="text-body text-slate-600">
-            Download your personalized career strategy or share it with a mentor.
+            Download your personalized career strategy or share it with a
+            mentor.
           </p>
           <button className="btn btn-primary mx-auto">
             📥 Download as PDF (Coming Soon)
