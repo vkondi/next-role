@@ -79,6 +79,30 @@ export const CareerPathSchema = z.object({
 export type CareerPath = z.infer<typeof CareerPathSchema>;
 
 /**
+ * CareerPathMinimal Schema - Minimal career path for carousel (fast loading)
+ */
+export const CareerPathMinimalSchema = z.object({
+  roleId: z.string().describe("Unique identifier for this career path"),
+  roleName: z.string().describe("Name of the target role"),
+  description: z.string().describe("Short description of the role"),
+  marketDemandScore: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe("Market demand as percentage (0-100)"),
+  industryAlignment: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe("How well it aligns with user background (0-100)"),
+  requiredSkills: z
+    .array(z.string())
+    .describe("Skills needed for this role"),
+});
+
+export type CareerPathMinimal = z.infer<typeof CareerPathMinimalSchema>;
+
+/**
  * SkillGap Schema - Individual skill gap
  */
 export const SkillGapSchema = z.object({

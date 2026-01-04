@@ -66,7 +66,7 @@ export default function Home() {
           <p className="text-subtitle text-slate-600 max-w-2xl mx-auto">
             Stop wondering about your career direction. Upload your resume and
             let AI analyze your profile, suggest strategic career paths, and
-            generate a 6-12 month actionable roadmap to get you there.
+            generate a personalized roadmap tailored to your skill gaps.
           </p>
 
           <div className="pt-4 space-y-3">

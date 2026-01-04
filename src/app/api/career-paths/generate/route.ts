@@ -1,12 +1,13 @@
 /**
  * POST /api/career-paths/generate
- * Generates possible career paths based on resume profile
+ * Generates minimal career path options for carousel display
+ * (Full details fetched separately when user selects a path)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { CareerPathGeneratorRequestSchema } from "@/lib/ai/schemas";
-import { generateCareerPaths } from "@/lib/ai/prompts/careerPathGenerator";
-import { generateMockCareerPaths } from "@/lib/api/mockData";
+import { generateCareerPathsMinimal } from "@/lib/ai/prompts/careerPathGenerator";
+import { generateMockCareerPathsMinimal } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
 
 const handler = async (request: NextRequest) => {
@@ -32,11 +33,11 @@ const handler = async (request: NextRequest) => {
     
     if (useMock) {
       // Use mock data
-      paths = generateMockCareerPaths(resumeProfile);
+      paths = generateMockCareerPathsMinimal(resumeProfile);
     } else {
-      // Call actual AI API
+      // Call actual AI API with minimal prompt (MUCH FASTER)
       try {
-        paths = await generateCareerPaths(resumeProfile, numberOfPaths);
+        paths = await generateCareerPathsMinimal(resumeProfile, numberOfPaths);
       } catch (error) {
         return NextResponse.json(
           {
@@ -64,4 +65,4 @@ const handler = async (request: NextRequest) => {
   }
 };
 
-export const POST = withRateLimit(handler); // Uses AI to generate career paths
+export const POST = withRateLimit(handler);

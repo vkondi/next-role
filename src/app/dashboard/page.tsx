@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  CareerPathCard,
+  CareerPathsCarousel,
   SkillGapChart,
   RoadmapTimeline,
   ApiModeToggle,
@@ -17,9 +17,11 @@ import {
 import { useApiMode } from "@/lib/context/ApiModeContext";
 import { useResume } from "@/lib/context/ResumeContext";
 import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
+import { calculateTimelineMonths } from "@/lib/utils/timelineUtils";
 import type {
   ResumeProfile,
   CareerPath,
+  CareerPathMinimal,
   SkillGapAnalysis,
   CareerRoadmap,
 } from "@/lib/types";
@@ -30,32 +32,35 @@ export default function DashboardPage() {
   const { mode } = useApiMode();
   const { resumeProfile } = useResume();
   const initialLoadRef = useRef(true);
-  const [careerPaths, setCareerPaths] = useState<CareerPath[]>([]);
+  const [careerPathsMinimal, setCareerPathsMinimal] = useState<CareerPathMinimal[]>([]);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
+  const [selectedPath, setSelectedPath] = useState<CareerPath | null>(null);
   const [skillGapAnalysis, setSkillGapAnalysis] =
     useState<SkillGapAnalysis | null>(null);
   const [roadmap, setRoadmap] = useState<CareerRoadmap | null>(null);
   const [loading, setLoading] = useState(true);
+  const [detailedLoading, setDetailedLoading] = useState(false);
   const [skillGapLoading, setSkillGapLoading] = useState(false);
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch career paths based on profile and API mode
-  const fetchCareerPaths = useCallback(
+  // Fetch MINIMAL career paths (fast, for carousel)
+  const fetchCareerPathsMinimal = useCallback(
     async (profile: ResumeProfile, apiMode: string) => {
       try {
         const url = buildApiUrl(
           "/api/career-paths/generate",
           apiMode === "mock"
         );
-        const paths = await apiRequest<CareerPath[]>(url, {
+        const paths = await apiRequest<CareerPathMinimal[]>(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5 }),
         });
-        setCareerPaths(paths);
-        // Auto-select first path
-        setSelectedPathId(paths[0].roleId);
+        setCareerPathsMinimal(paths);
+        // NO auto-selection - guide user to select one
+        setSelectedPathId(null);
+        setSelectedPath(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
@@ -66,6 +71,7 @@ export default function DashboardPage() {
   );
 
   // Unified effect: Handle initial load and mode changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Check if user has resume context
     if (!resumeProfile) {
@@ -81,22 +87,23 @@ export default function DashboardPage() {
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
       setLoading(true);
-      fetchCareerPaths(resumeProfile, mode);
+      fetchCareerPathsMinimal(resumeProfile, mode);
       return;
     }
 
     // Subsequent times: reload when mode changes
     if (!loading) {
       setLoading(true);
-      setCareerPaths([]);
+      setCareerPathsMinimal([]);
       setSelectedPathId(null);
+      setSelectedPath(null);
       setSkillGapAnalysis(null);
       setRoadmap(null);
       setError(null);
 
-      fetchCareerPaths(resumeProfile, mode);
+      fetchCareerPathsMinimal(resumeProfile, mode);
     }
-  }, [mode, resumeProfile, fetchCareerPaths, router]);
+  }, [mode, resumeProfile, fetchCareerPathsMinimal, router]);
 
   const loadRoadmap = useCallback(
     async (
@@ -106,6 +113,12 @@ export default function DashboardPage() {
     ) => {
       setRoadmapLoading(true);
       try {
+        // Calculate timeline dynamically based on skill gap analysis
+        const timelineMonths = calculateTimelineMonths(
+          gaps.estimatedTimeToClose,
+          gaps.overallGapSeverity
+        );
+
         const url = buildApiUrl("/api/roadmap/generate", mode === "mock");
         const roadmapData = await apiRequest<CareerRoadmap>(url, {
           method: "POST",
@@ -114,7 +127,7 @@ export default function DashboardPage() {
             resumeProfile: profile,
             careerPath: path,
             skillGapAnalysis: gaps,
-            timelineMonths: 6,
+            timelineMonths,
           }),
         });
         setRoadmap(roadmapData);
@@ -130,16 +143,56 @@ export default function DashboardPage() {
   const handlePathSelect = useCallback(
     async (pathId: string) => {
       setSelectedPathId(pathId);
+      setSelectedPath(null);
       setSkillGapAnalysis(null);
       setRoadmap(null);
       setError(null);
 
       if (!resumeProfile) return;
 
-      const selectedPath = careerPaths.find((p) => p.roleId === pathId);
-      if (!selectedPath) return;
+      const minimalPath = careerPathsMinimal.find((p) => p.roleId === pathId);
+      if (!minimalPath) return;
 
-      // Load skill gap analysis
+      // Fetch detailed info for this path
+      setDetailedLoading(true);
+      let detailedPath: CareerPath | null = null;
+      
+      try {
+        const url = buildApiUrl(
+          "/api/career-paths/details",
+          mode === "mock"
+        );
+        const details = await apiRequest<CareerPath>(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resumeProfile,
+            pathBasic: {
+              roleId: minimalPath.roleId,
+              roleName: minimalPath.roleName,
+            },
+          }),
+        });
+        // Merge with minimal data
+        detailedPath = {
+          ...minimalPath,
+          ...details,
+        } as CareerPath;
+        setSelectedPath(detailedPath);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        setDetailedLoading(false);
+        return;
+      }
+
+      setDetailedLoading(false);
+
+      // Once we have detailed path, fetch skill gap analysis
+      if (!detailedPath) {
+        setError("Failed to load path details");
+        return;
+      }
+
       setSkillGapLoading(true);
       try {
         const url = buildApiUrl("/api/skill-gap/analyze", mode === "mock");
@@ -148,18 +201,18 @@ export default function DashboardPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             resumeProfile,
-            careerPath: selectedPath,
+            careerPath: detailedPath,
           }),
         });
         setSkillGapAnalysis(gapAnalysis);
         setSkillGapLoading(false);
-        loadRoadmap(resumeProfile, selectedPath, gapAnalysis);
+        loadRoadmap(resumeProfile, detailedPath, gapAnalysis);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
         setSkillGapLoading(false);
       }
     },
-    [mode, resumeProfile, careerPaths, loadRoadmap]
+    [mode, resumeProfile, careerPathsMinimal, loadRoadmap]
   );
 
   if (error && !resumeProfile) {
@@ -241,26 +294,84 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Career Paths Section */}
+        {/* Career Paths Carousel Section */}
         <div className="space-y-6">
-          <div>
-            <h2 className="heading-2">Recommended Career Paths</h2>
-            <p className="text-subtitle text-slate-600 mt-2">
-              4-6 strategic next moves aligned with your background
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {careerPaths.map((path) => (
-              <CareerPathCard
-                key={path.roleId}
-                path={path}
-                isSelected={selectedPathId === path.roleId}
-                onSelect={handlePathSelect}
-              />
-            ))}
-          </div>
+          <CareerPathsCarousel
+            paths={careerPathsMinimal}
+            selectedPathId={selectedPathId}
+            onSelect={handlePathSelect}
+            isLoading={loading}
+          />
         </div>
+
+        {/* Detailed Path Info - Shown after selection */}
+        {selectedPath && !detailedLoading && (
+          <div className="space-y-6">
+            <div className="card p-6">
+              <div className="space-y-4">
+                <h3 className="heading-3">{selectedPath.roleName}</h3>
+                <p className="text-body text-slate-700">{selectedPath.description}</p>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-slate-50 p-3 rounded-lg">
+                    <p className="text-xs font-semibold text-slate-600 mb-1">Market Demand</p>
+                    <p className="heading-4 text-emerald-600">{selectedPath.marketDemandScore}%</p>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-lg">
+                    <p className="text-xs font-semibold text-slate-600 mb-1">Industry Fit</p>
+                    <p className="heading-4 text-emerald-600">{selectedPath.industryAlignment}%</p>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-lg">
+                    <p className="text-xs font-semibold text-slate-600 mb-1">Effort</p>
+                    <p className="heading-4 text-slate-900">{selectedPath.effortLevel}</p>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-lg">
+                    <p className="text-xs font-semibold text-slate-600 mb-1">Reward</p>
+                    <p className="heading-4 text-slate-900">{selectedPath.rewardPotential}</p>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-emerald-900 mb-2">Why This Path?</p>
+                  <p className="text-sm text-emerald-800">{selectedPath.reasoning}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-2">Required Skills</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPath.requiredSkills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-full"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Detailed Path Loading Indicator */}
+        {selectedPathId && detailedLoading && (
+          <div className="space-y-6">
+            <div className="card p-8">
+              <div className="flex items-center justify-center gap-4">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 animate-pulse" />
+                <div className="space-y-2">
+                  <p className="text-lg font-semibold text-slate-900">
+                    Loading path details...
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Gathering comprehensive information
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Skill Gap Loading Indicator */}
         {skillGapLoading && (
@@ -356,7 +467,7 @@ export default function DashboardPage() {
                   Generating your career roadmap...
                 </p>
                 <p className="text-sm text-slate-600">
-                  Creating a personalized 6-month development plan
+                  Creating a personalized development plan based on your skill gaps
                 </p>
               </div>
             </div>

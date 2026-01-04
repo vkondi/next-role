@@ -6,6 +6,7 @@
 import type {
   ResumeProfile,
   CareerPath,
+  CareerPathMinimal,
   SkillGapAnalysis,
   CareerRoadmap,
 } from "@/lib/types";
@@ -318,6 +319,21 @@ export function generateMockSkillGapAnalysis(
   _profile: ResumeProfile,
   careerPath: CareerPath
 ): SkillGapAnalysis {
+  // Determine gap severity and estimated time based on effort level
+  // This makes the timeline dynamic based on the path characteristics
+  const effortLevel = careerPath.effortLevel;
+  const estimatedTimeMap = {
+    Low: "3-4 months",
+    Medium: "6-9 months",
+    High: "9-12 months",
+  };
+  
+  const severityMap = {
+    Low: "Low" as const,
+    Medium: "Medium" as const,
+    High: "High" as const,
+  };
+
   return {
     careerPathId: careerPath.roleId,
     careerPathName: careerPath.roleName,
@@ -356,10 +372,10 @@ export function generateMockSkillGapAnalysis(
         ],
       },
     ],
-    overallGapSeverity: "Medium",
-    estimatedTimeToClose: "6-12 months",
+    overallGapSeverity: severityMap[effortLevel],
+    estimatedTimeToClose: estimatedTimeMap[effortLevel],
     summary:
-      "You have a solid foundation. Focus on deepening leadership skills and architecture knowledge.",
+      "You have a solid foundation. Focus on developing the key skills for your target role while leveraging your existing strengths.",
   };
 }
 
@@ -456,5 +472,39 @@ export function generateMockRoadmap(
       "Mentor/advisor in target role",
       "Supportive team environment",
     ],
+  };
+}
+/**
+ * Generate MINIMAL career paths (for carousel - fast loading)
+ */
+export function generateMockCareerPathsMinimal(
+  profile: ResumeProfile
+): CareerPathMinimal[] {
+  const fullPaths = generateMockCareerPaths(profile);
+  // Convert full paths to minimal versions (just title, description, scores, skills)
+  return fullPaths.map(path => ({
+    roleId: path.roleId,
+    roleName: path.roleName,
+    description: path.description,
+    marketDemandScore: path.marketDemandScore,
+    industryAlignment: path.industryAlignment,
+    requiredSkills: path.requiredSkills,
+  }));
+}
+
+/**
+ * Generate detailed info for a specific career path
+ */
+export function generateMockCareerPathDetails(
+  _profile: ResumeProfile,
+  pathBasic: { roleId: string; roleName: string }
+) {
+  // Return the extra fields that weren't in minimal version
+  return {
+    ...pathBasic,
+    effortLevel: "Medium" as const,
+    rewardPotential: "High" as const,
+    reasoning: `This career path aligns well with your background and offers significant growth potential.`,
+    detailedDescription: `${pathBasic.roleName} is an excellent progression that leverages your expertise while opening new opportunities for impact and compensation growth.`,
   };
 }

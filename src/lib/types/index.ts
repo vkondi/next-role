@@ -34,6 +34,18 @@ export interface CareerPath {
 }
 
 /**
+ * Minimal career path for carousel display (fast loading)
+ */
+export interface CareerPathMinimal {
+  roleId: string;
+  roleName: string;
+  description: string;
+  marketDemandScore: number; // 0-100
+  industryAlignment: number; // 0-100
+  requiredSkills: string[];
+}
+
+/**
  * Represents the gap between current and required skills for a career path
  */
 export interface SkillGapAnalysis {
