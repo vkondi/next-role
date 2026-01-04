@@ -3,8 +3,15 @@
  * Handles communication with Deepseek API for AI-powered career analysis
  */
 
+import { Agent as HttpAgent } from "http";
+import { Agent as HttpsAgent } from "https";
+
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
+
+// Connection pooling agents for better performance
+const httpAgent = new HttpAgent({ keepAlive: true, maxSockets: 10 });
+const httpsAgent = new HttpsAgent({ keepAlive: true, maxSockets: 10 });
 
 interface DeepseekRequest {
   model: string;
@@ -43,8 +50,8 @@ export async function callDeepseekAPI(prompt: string): Promise<string> {
           content: prompt,
         },
       ],
-      temperature: 0.1, // Low temperature for structured output
-      top_p: 1,
+      temperature: 0.05, // Ultra-low temperature for fastest structured output
+      top_p: 0.9, // Reduced from 1.0 for faster token sampling
     };
 
     const response = await fetch(DEEPSEEK_API_URL, {
@@ -54,6 +61,8 @@ export async function callDeepseekAPI(prompt: string): Promise<string> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      // @ts-expect-error - Node.js fetch doesn't have agent type in some versions
+      agent: DEEPSEEK_API_URL.startsWith("https") ? httpsAgent : httpAgent,
     });
 
     if (!response.ok) {

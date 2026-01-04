@@ -9,6 +9,7 @@ import { CareerPathGeneratorRequestSchema } from "@/lib/ai/schemas";
 import { generateCareerPathsMinimal } from "@/lib/ai/prompts/careerPathGenerator";
 import { generateMockCareerPathsMinimal } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
+import { responseCache } from "@/lib/api/cache";
 
 const handler = async (request: NextRequest) => {
   try {
@@ -27,7 +28,18 @@ const handler = async (request: NextRequest) => {
       );
     }
 
-    const { resumeProfile, numberOfPaths = 5 } = validatedData.data;
+    const { resumeProfile, numberOfPaths = 4 } = validatedData.data;
+
+    // Check cache first (only for real API calls, not mock)
+    if (!useMock) {
+      const cachedResult = responseCache.get<typeof resumeProfile>(resumeProfile);
+      if (cachedResult) {
+        return NextResponse.json({
+          success: true,
+          data: cachedResult,
+        });
+      }
+    }
 
     let paths;
     
@@ -38,6 +50,8 @@ const handler = async (request: NextRequest) => {
       // Call actual AI API with minimal prompt (MUCH FASTER)
       try {
         paths = await generateCareerPathsMinimal(resumeProfile, numberOfPaths);
+        // Cache the result for 1 hour
+        responseCache.set(resumeProfile, paths, 60 * 60 * 1000);
       } catch (error) {
         return NextResponse.json(
           {

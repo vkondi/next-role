@@ -3,7 +3,7 @@
  * Suggests 4-6 potential career paths based on user profile
  */
 
-import { CareerPathSchema, CareerPathMinimalSchema } from "../schemas";
+import { CareerPathSchema } from "../schemas";
 import type { CareerPath, CareerPathMinimal, ResumeProfile } from "../schemas";
 import { z } from "zod";
 import { callDeepseekAPI } from "@/lib/api/deepseek";
@@ -14,38 +14,12 @@ import { callDeepseekAPI } from "@/lib/api/deepseek";
  */
 export function createCareerPathMinimalPrompt(
   resumeProfile: ResumeProfile,
-  numberOfPaths: number = 5
+  numberOfPaths: number = 4
 ): string {
-  return `You are an expert career strategist. Generate strategic career paths based on a professional's profile.
+  return `Generate ${numberOfPaths} career paths for: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y), ${resumeProfile.techStack.join(", ")}.
 
-IMPORTANT: You MUST respond with ONLY valid JSON, no markdown, no code blocks, no extra text.
-
-Professional Profile:
-- Current Role: ${resumeProfile.currentRole}
-- Years of Experience: ${resumeProfile.yearsOfExperience}
-- Tech Stack: ${resumeProfile.techStack.join(", ")}
-- Strength Areas: ${resumeProfile.strengthAreas.join(", ")}
-- Industry Background: ${resumeProfile.industryBackground}
-
-Generate exactly ${numberOfPaths} career path options. Return ONLY this JSON structure:
-[
-  {
-    "roleId": "path_001",
-    "roleName": "Role Name",
-    "description": "One short sentence description",
-    "marketDemandScore": number,
-    "industryAlignment": number,
-    "requiredSkills": ["Skill1", "Skill2", "Skill3", "Skill4", "Skill5"]
-  }
-]
-
-REQUIREMENTS:
-- Return ONLY JSON array, no additional text
-- roleId format: "path_001", "path_002", etc.
-- Description: ONE short sentence only
-- Scores: 0-100 numbers
-- Skills: 5 key skills only
-- Keep response concise and fast to generate`;
+Return ONLY this JSON array, no text:
+[{"roleId":"path_001","roleName":"Role","description":"1 sentence","marketDemandScore":85,"industryAlignment":90,"requiredSkills":["Skill1","Skill2","Skill3","Skill4","Skill5"]}]`;
 }
 
 /**
@@ -84,21 +58,28 @@ REQUIREMENTS:
 }
 
 /**
- * Parses minimal career paths response
+ * Parses minimal career paths response - FAST, no validation
  */
 export async function parseCareerPathMinimalResponse(
   responseText: string
 ): Promise<CareerPathMinimal[]> {
   try {
     let cleanedText = responseText.trim();
+    // Remove markdown code blocks if present
     if (cleanedText.startsWith("```json")) cleanedText = cleanedText.substring(7);
     if (cleanedText.startsWith("```")) cleanedText = cleanedText.substring(3);
     if (cleanedText.endsWith("```")) cleanedText = cleanedText.substring(0, cleanedText.length - 3);
     cleanedText = cleanedText.trim();
 
-    const parsed = JSON.parse(cleanedText);
-    const schema = z.array(CareerPathMinimalSchema);
-    return schema.parse(parsed);
+    // Fast parse without Zod validation
+    const parsed = JSON.parse(cleanedText) as CareerPathMinimal[];
+    
+    // Quick sanity check - ensure it's an array with expected fields
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error("Response is not a valid array");
+    }
+    
+    return parsed;
   } catch (error) {
     throw new Error(
       `Failed to parse career paths: ${error instanceof Error ? error.message : String(error)}`
