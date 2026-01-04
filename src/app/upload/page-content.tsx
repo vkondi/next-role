@@ -7,6 +7,7 @@ import { ApiModeToggle } from "@/components";
 import { useApiMode } from "@/lib/context/ApiModeContext";
 import { useResume } from "@/lib/context/ResumeContext";
 import { validateResumeText } from "@/lib/api/resumeValidation";
+import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
 import type { ResumeProfile } from "@/lib/types";
 
 export default function UploadPageContent() {
@@ -38,29 +39,17 @@ export default function UploadPageContent() {
     setFileError(null); // Clear any file errors
 
     try {
-      const url = new URL("/api/resume/interpret", window.location.origin);
-      if (mode === "mock") {
-        url.searchParams.set("mock", "true");
-      }
-
-      const response = await fetch(url.toString(), {
+      const url = buildApiUrl("/api/resume/interpret", mode === "mock");
+      const profile = await apiRequest<ResumeProfile>(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to interpret resume");
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setProfile(data.data);
-      } else {
-        setError(data.error || "Failed to process resume");
-      }
+      setProfile(profile);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      console.error("Resume analysis error:", errorMessage, err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

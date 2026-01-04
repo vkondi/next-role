@@ -16,6 +16,7 @@ import {
 } from "@/components";
 import { useApiMode } from "@/lib/context/ApiModeContext";
 import { useResume } from "@/lib/context/ResumeContext";
+import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
 import type {
   ResumeProfile,
   CareerPath,
@@ -41,27 +42,15 @@ export default function DashboardPage() {
   // Fetch career paths based on profile and API mode
   const fetchCareerPaths = useCallback(async (profile: ResumeProfile, apiMode: string) => {
     try {
-      const url = new URL("/api/career-paths/generate", window.location.origin);
-      if (apiMode === "mock") {
-        url.searchParams.set("mock", "true");
-      }
-
-      const response = await fetch(url.toString(), {
+      const url = buildApiUrl("/api/career-paths/generate", apiMode === "mock");
+      const paths = await apiRequest<CareerPath[]>(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5 }),
       });
-
-      if (!response.ok) throw new Error("Failed to generate career paths");
-
-      const data = await response.json();
-      if (data.success) {
-        setCareerPaths(data.data);
-        // Auto-select first path
-        setSelectedPathId(data.data[0].roleId);
-      } else {
-        setError(data.error || "Failed to generate career paths");
-      }
+      setCareerPaths(paths);
+      // Auto-select first path
+      setSelectedPathId(paths[0].roleId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -104,12 +93,8 @@ export default function DashboardPage() {
     async (profile: ResumeProfile, path: CareerPath, gaps: SkillGapAnalysis) => {
       setRoadmapLoading(true);
       try {
-        const url = new URL("/api/roadmap/generate", window.location.origin);
-        if (mode === "mock") {
-          url.searchParams.set("mock", "true");
-        }
-
-        const response = await fetch(url.toString(), {
+        const url = buildApiUrl("/api/roadmap/generate", mode === "mock");
+        const roadmapData = await apiRequest<CareerRoadmap>(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -119,15 +104,7 @@ export default function DashboardPage() {
             timelineMonths: 6,
           }),
         });
-
-        if (!response.ok) throw new Error("Failed to generate roadmap");
-
-        const data = await response.json();
-        if (data.success) {
-          setRoadmap(data.data);
-        } else {
-          setError(data.error || "Failed to generate roadmap");
-        }
+        setRoadmap(roadmapData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
@@ -152,12 +129,8 @@ export default function DashboardPage() {
       // Load skill gap analysis
       setSkillGapLoading(true);
       try {
-        const url = new URL("/api/skill-gap/analyze", window.location.origin);
-        if (mode === "mock") {
-          url.searchParams.set("mock", "true");
-        }
-
-        const response = await fetch(url.toString(), {
+        const url = buildApiUrl("/api/skill-gap/analyze", mode === "mock");
+        const gapAnalysis = await apiRequest<SkillGapAnalysis>(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -165,18 +138,9 @@ export default function DashboardPage() {
             careerPath: selectedPath,
           }),
         });
-
-        if (!response.ok) throw new Error("Failed to analyze skill gaps");
-
-        const data = await response.json();
-        if (data.success) {
-          setSkillGapAnalysis(data.data);
-          setSkillGapLoading(false);
-          loadRoadmap(resumeProfile, selectedPath, data.data);
-        } else {
-          setError(data.error || "Failed to analyze skill gaps");
-          setSkillGapLoading(false);
-        }
+        setSkillGapAnalysis(gapAnalysis);
+        setSkillGapLoading(false);
+        loadRoadmap(resumeProfile, selectedPath, gapAnalysis);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
         setSkillGapLoading(false);
