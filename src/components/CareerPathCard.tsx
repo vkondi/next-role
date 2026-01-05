@@ -32,35 +32,35 @@ export function CareerPathCard({
   return (
     <div
       onClick={() => onSelect?.(path.roleId)}
-      className={`card p-6 cursor-pointer transition-all ${
+      className={`card cursor-pointer transition-all ${
         isSelected
           ? "ring-2 ring-emerald-500 shadow-lg"
           : "hover:shadow-md"
       }`}
     >
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Header */}
         <div>
-          <h3 className="heading-4 text-emerald-700">{path.roleName}</h3>
-          <p className="text-small mt-1">{path.description}</p>
+          <h3 className="heading-4 text-emerald-700 text-lg sm:text-xl">{path.roleName}</h3>
+          <p className="text-small text-xs sm:text-sm mt-1">{path.description}</p>
         </div>
 
         {/* Metrics */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-slate-500" />
-            <div>
-              <p className="text-small font-semibold">Market Demand</p>
-              <p className="text-lg font-bold text-emerald-600">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="flex items-start sm:items-center gap-2">
+            <TrendingUp className="w-3 sm:w-4 h-3 sm:h-4 text-slate-500 flex-shrink-0 mt-1 sm:mt-0" />
+            <div className="min-w-0">
+              <p className="text-small text-xs sm:text-sm font-semibold">Market Demand</p>
+              <p className="text-base sm:text-lg font-bold text-emerald-600">
                 {path.marketDemandScore}%
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-slate-500" />
-            <div>
-              <p className="text-small font-semibold">Industry Fit</p>
-              <p className="text-lg font-bold text-emerald-600">
+          <div className="flex items-start sm:items-center gap-2">
+            <Zap className="w-3 sm:w-4 h-3 sm:h-4 text-slate-500 flex-shrink-0 mt-1 sm:mt-0" />
+            <div className="min-w-0">
+              <p className="text-small text-xs sm:text-sm font-semibold">Industry Fit</p>
+              <p className="text-base sm:text-lg font-bold text-emerald-600">
                 {path.industryAlignment}%
               </p>
             </div>
@@ -68,34 +68,34 @@ export function CareerPathCard({
         </div>
 
         {/* Effort and Reward */}
-        <div className="flex gap-2 flex-wrap">
-          <span className={`px-3 py-1 rounded-full text-sm font-semibold ${effortColors[path.effortLevel]}`}>
+        <div className="flex gap-1 sm:gap-2 flex-wrap">
+          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold ${effortColors[path.effortLevel]}`}>
             Effort: {path.effortLevel}
           </span>
-          <span className={`px-3 py-1 rounded-full text-sm font-semibold ${rewardColors[path.rewardPotential]}`}>
+          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold ${rewardColors[path.rewardPotential]}`}>
             Reward: {path.rewardPotential}
           </span>
         </div>
 
         {/* Reasoning */}
-        <p className="text-small bg-slate-50 p-3 rounded-lg border border-slate-200">
+        <p className="text-small text-xs sm:text-sm bg-slate-50 p-2 sm:p-3 rounded-lg border border-slate-200">
           {path.reasoning}
         </p>
 
         {/* Skills */}
         <div>
-          <p className="text-small font-semibold mb-2">Required Skills</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-small text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Required Skills</p>
+          <div className="flex flex-wrap gap-1 sm:gap-2">
             {path.requiredSkills.slice(0, 4).map((skill) => (
               <span
                 key={skill}
-                className="px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded"
+                className="px-2 py-0.5 sm:py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded"
               >
                 {skill}
               </span>
             ))}
             {path.requiredSkills.length > 4 && (
-              <span className="px-2 py-1 bg-slate-200 text-slate-700 text-xs font-semibold rounded">
+              <span className="px-2 py-0.5 sm:py-1 bg-slate-200 text-slate-700 text-xs font-semibold rounded">
                 +{path.requiredSkills.length - 4} more
               </span>
             )}
@@ -104,8 +104,8 @@ export function CareerPathCard({
 
         {/* Selection indicator */}
         {isSelected && (
-          <div className="pt-3 border-t border-emerald-200">
-            <p className="text-sm font-semibold text-emerald-600">
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-emerald-200">
+            <p className="text-xs sm:text-sm font-semibold text-emerald-600 text-center">
               ✓ Selected
             </p>
           </div>

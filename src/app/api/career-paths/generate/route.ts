@@ -1,13 +1,15 @@
 /**
  * POST /api/career-paths/generate
- * Generates possible career paths based on resume profile
+ * Generates minimal career path options for carousel display
+ * (Full details fetched separately when user selects a path)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { CareerPathGeneratorRequestSchema } from "@/lib/ai/schemas";
-import { generateCareerPaths } from "@/lib/ai/prompts/careerPathGenerator";
-import { generateMockCareerPaths } from "@/lib/api/mockData";
+import { generateCareerPathsMinimal } from "@/lib/ai/prompts/careerPathGenerator";
+import { generateMockCareerPathsMinimal } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
+import { responseCache } from "@/lib/api/cache";
 
 const handler = async (request: NextRequest) => {
   try {
@@ -26,17 +28,30 @@ const handler = async (request: NextRequest) => {
       );
     }
 
-    const { resumeProfile, numberOfPaths = 5 } = validatedData.data;
+    const { resumeProfile, numberOfPaths = 4 } = validatedData.data;
+
+    // Check cache first (only for real API calls, not mock)
+    if (!useMock) {
+      const cachedResult = responseCache.get<typeof resumeProfile>(resumeProfile);
+      if (cachedResult) {
+        return NextResponse.json({
+          success: true,
+          data: cachedResult,
+        });
+      }
+    }
 
     let paths;
     
     if (useMock) {
       // Use mock data
-      paths = generateMockCareerPaths(resumeProfile);
+      paths = generateMockCareerPathsMinimal(resumeProfile);
     } else {
-      // Call actual AI API
+      // Call actual AI API with minimal prompt (MUCH FASTER)
       try {
-        paths = await generateCareerPaths(resumeProfile, numberOfPaths);
+        paths = await generateCareerPathsMinimal(resumeProfile, numberOfPaths);
+        // Cache the result for 1 hour
+        responseCache.set(resumeProfile, paths, 60 * 60 * 1000);
       } catch (error) {
         return NextResponse.json(
           {
@@ -64,4 +79,4 @@ const handler = async (request: NextRequest) => {
   }
 };
 
-export const POST = withRateLimit(handler); // Uses AI to generate career paths
+export const POST = withRateLimit(handler);

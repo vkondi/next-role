@@ -22,45 +22,45 @@ body {
 /* Typography */
 @layer components {
   .heading-1 {
-    @apply text-4xl md:text-5xl font-bold text-slate-900;
+    @apply text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight;
   }
 
   .heading-2 {
-    @apply text-3xl md:text-4xl font-bold text-slate-900;
+    @apply text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 leading-tight;
   }
 
   .heading-3 {
-    @apply text-2xl md:text-3xl font-bold text-slate-800;
+    @apply text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 leading-tight;
   }
 
   .heading-4 {
-    @apply text-xl md:text-2xl font-semibold text-slate-800;
+    @apply text-lg sm:text-xl md:text-2xl font-semibold text-slate-800 leading-snug;
   }
 
   .text-subtitle {
-    @apply text-lg text-slate-600;
+    @apply text-base sm:text-lg md:text-lg text-slate-600;
   }
 
   .text-body {
-    @apply text-base text-slate-700;
+    @apply text-sm sm:text-base text-slate-700;
   }
 
   .text-small {
-    @apply text-sm text-slate-600;
+    @apply text-xs sm:text-sm text-slate-600;
   }
 
   /* Cards */
   .card {
-    @apply bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow;
+    @apply bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-4 sm:p-5 md:p-6;
   }
 
   .card-elevated {
-    @apply bg-white rounded-lg shadow-lg border border-slate-100;
+    @apply bg-white rounded-lg shadow-lg border border-slate-100 p-5 sm:p-6 md:p-8;
   }
 
   /* Buttons */
   .btn {
-    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2;
+    @apply px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base;
   }
 
   .btn-primary {
@@ -76,29 +76,29 @@ body {
   }
 
   .btn-sm {
-    @apply px-4 py-2 text-sm;
+    @apply px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm;
   }
 
   .btn-lg {
-    @apply px-8 py-4 text-lg;
+    @apply px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg;
   }
 
   /* Forms */
   .input {
-    @apply w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent;
+    @apply w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base;
   }
 
   .textarea {
-    @apply w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none;
+    @apply w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none text-sm sm:text-base;
   }
 
   /* Utilities */
   .container {
-    @apply w-full max-w-6xl mx-auto px-4 sm:px-6;
+    @apply w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-0;
   }
 
   .section {
-    @apply py-16 md:py-24;
+    @apply py-8 sm:py-12 md:py-16 lg:py-24;
   }
 }
 

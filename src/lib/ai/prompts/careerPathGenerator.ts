@@ -4,10 +4,155 @@
  */
 
 import { CareerPathSchema } from "../schemas";
-import type { CareerPath, ResumeProfile } from "../schemas";
+import type { CareerPath, CareerPathMinimal, ResumeProfile } from "../schemas";
 import { z } from "zod";
 import { callDeepseekAPI } from "@/lib/api/deepseek";
 
+/**
+ * Minimal prompt - Returns quick overview without detailed reasoning
+ * This is MUCH faster since we don't ask for lengthy explanations
+ * OPTIMIZED: Short JSON field names for output compression
+ */
+export function createCareerPathMinimalPrompt(
+  resumeProfile: ResumeProfile,
+  numberOfPaths: number = 4
+): string {
+  return `Generate ${numberOfPaths} career paths for: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y), ${resumeProfile.techStack.join(", ")}.
+
+Return ONLY valid JSON array, no text:
+[{"id":"p_1","name":"Role","desc":"1 line","mkt":85,"ind":90,"skl":["S1","S2","S3"]}]`;
+}
+
+/**
+ * Detailed prompt - For a selected path only
+ * Fetched AFTER user selects from carousel
+ */
+export function createCareerPathDetailsPrompt(
+  resumeProfile: ResumeProfile,
+  pathName: string
+): string {
+  return `You are an expert career strategist. Provide detailed analysis for a specific career path.
+
+IMPORTANT: You MUST respond with ONLY valid JSON, no markdown, no code blocks, no extra text.
+
+Professional Profile:
+- Current Role: ${resumeProfile.currentRole}
+- Years of Experience: ${resumeProfile.yearsOfExperience}
+- Strengths: ${resumeProfile.strengthAreas.join(", ")}
+- Background: ${resumeProfile.industryBackground}
+
+Provide comprehensive details for: "${pathName}"
+
+Return ONLY this JSON structure:
+{
+  "effortLevel": "Low|Medium|High",
+  "rewardPotential": "Low|Medium|High",
+  "reasoning": "2-3 sentences explaining why this path fits",
+  "detailedDescription": "3-4 sentences about responsibilities and growth potential"
+}
+
+REQUIREMENTS:
+- Return ONLY JSON, no additional text
+- Effort/Reward: Must be exactly "Low", "Medium", or "High"
+- Reasoning: Specific to this person's background
+- Description: Detailed but concise`;
+}
+
+/**
+ * Parses minimal career paths response - FAST, with field name mapping
+ * Handles both condensed and full field names
+ */
+export async function parseCareerPathMinimalResponse(
+  responseText: string
+): Promise<CareerPathMinimal[]> {
+  try {
+    let cleanedText = responseText.trim();
+    // Remove markdown code blocks if present
+    if (cleanedText.startsWith("```json")) cleanedText = cleanedText.substring(7);
+    if (cleanedText.startsWith("```")) cleanedText = cleanedText.substring(3);
+    if (cleanedText.endsWith("```")) cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+    cleanedText = cleanedText.trim();
+
+    // Fast parse without Zod validation
+    const parsed = JSON.parse(cleanedText) as Array<Record<string, unknown>>;
+    
+    // Quick sanity check - ensure it's an array with expected fields
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error("Response is not a valid array");
+    }
+    
+    // Map condensed field names to full structure
+    return parsed.map((item) => ({
+      roleId: (item.id || item.roleId) as string,
+      roleName: (item.name || item.roleName) as string,
+      description: (item.desc || item.description) as string,
+      marketDemandScore: (item.mkt || item.marketDemandScore) as number,
+      industryAlignment: (item.ind || item.industryAlignment) as number,
+      requiredSkills: (item.skl || item.requiredSkills) as string[],
+    })) as CareerPathMinimal[];
+  } catch (error) {
+    throw new Error(
+      `Failed to parse career paths: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Parses detailed path info response
+ */
+export async function parseCareerPathDetailsResponse(responseText: string) {
+  try {
+    let cleanedText = responseText.trim();
+    if (cleanedText.startsWith("```json")) cleanedText = cleanedText.substring(7);
+    if (cleanedText.startsWith("```")) cleanedText = cleanedText.substring(3);
+    if (cleanedText.endsWith("```")) cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+    cleanedText = cleanedText.trim();
+
+    const parsed = JSON.parse(cleanedText);
+    return z.object({
+      effortLevel: z.enum(["Low", "Medium", "High"]),
+      rewardPotential: z.enum(["Low", "Medium", "High"]),
+      reasoning: z.string(),
+      detailedDescription: z.string(),
+    }).parse(parsed);
+  } catch (error) {
+    throw new Error(
+      `Failed to parse path details: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Generate MINIMAL career paths (fast, for carousel)
+ */
+export async function generateCareerPathsMinimal(
+  resumeProfile: ResumeProfile,
+  numberOfPaths: number = 5
+): Promise<CareerPathMinimal[]> {
+  const prompt = createCareerPathMinimalPrompt(resumeProfile, numberOfPaths);
+  const response = await callDeepseekAPI(prompt);
+  return parseCareerPathMinimalResponse(response);
+}
+
+/**
+ * Generate detailed info for a specific path (slower, but selective)
+ */
+export async function generateCareerPathDetails(
+  resumeProfile: ResumeProfile,
+  pathBasic: { roleId: string; roleName: string }
+) {
+  const prompt = createCareerPathDetailsPrompt(resumeProfile, pathBasic.roleName);
+  const response = await callDeepseekAPI(prompt);
+  const details = await parseCareerPathDetailsResponse(response);
+  return {
+    ...pathBasic,
+    ...details,
+  };
+}
+
+/**
+ * Original function - kept for backward compatibility if needed
+ */
 export function createCareerPathGeneratorPrompt(
   resumeProfile: ResumeProfile,
   numberOfPaths: number = 5
@@ -62,7 +207,6 @@ export async function parseCareerPathGeneratorResponse(
   responseText: string
 ): Promise<CareerPath[]> {
   try {
-    // Clean up the response
     let cleanedText = responseText.trim();
     if (cleanedText.startsWith("```json")) {
       cleanedText = cleanedText.substring(7);
@@ -89,7 +233,7 @@ export async function parseCareerPathGeneratorResponse(
 }
 
 /**
- * Career Path Generator function
+ * Career Path Generator function (original, full data)
  */
 export async function generateCareerPaths(
   resumeProfile: ResumeProfile,
@@ -103,5 +247,3 @@ export async function generateCareerPaths(
   
   return paths;
 }
-//   throw new Error("Deepseek API not configured");
-// }
