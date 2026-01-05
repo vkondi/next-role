@@ -32,7 +32,8 @@ const handler = async (request: NextRequest) => {
 
     // Check cache first (only for real API calls, not mock)
     if (!useMock) {
-      const cachedResult = responseCache.get<typeof resumeProfile>(resumeProfile);
+      const cacheKey = `paths_${numberOfPaths}_${resumeProfile.currentRole}`;
+      const cachedResult = responseCache.get(cacheKey);
       if (cachedResult) {
         return NextResponse.json({
           success: true,
@@ -51,7 +52,8 @@ const handler = async (request: NextRequest) => {
       try {
         paths = await generateCareerPathsMinimal(resumeProfile, numberOfPaths);
         // Cache the result for 1 hour
-        responseCache.set(resumeProfile, paths, 60 * 60 * 1000);
+        const cacheKey = `paths_${numberOfPaths}_${resumeProfile.currentRole}`;
+        responseCache.set(cacheKey, paths, 60 * 60 * 1000);
       } catch (error) {
         return NextResponse.json(
           {

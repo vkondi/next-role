@@ -170,22 +170,24 @@ export function RoadmapTimeline({ roadmap }: RoadmapTimelineProps) {
             ))}
           </ul>
         </div>
-        <div className="space-y-2 sm:space-y-3">
-          <p className="heading-4 text-emerald-700 text-lg sm:text-2xl">Support Resources</p>
-          <ul className="space-y-1 sm:space-y-2">
-            {roadmap.supportResources.map((resource, i) => (
-              <li
-                key={i}
-                className="text-xs sm:text-sm text-slate-700 flex items-start gap-1 sm:gap-2"
-              >
-                <span className="text-emerald-600 font-bold flex-shrink-0">
-                  ✓
-                </span>
-                {resource}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {roadmap.supportResources && roadmap.supportResources.length > 0 && (
+          <div className="space-y-2 sm:space-y-3">
+            <p className="heading-4 text-emerald-700 text-lg sm:text-2xl">Support Resources</p>
+            <ul className="space-y-1 sm:space-y-2">
+              {roadmap.supportResources.map((resource, i) => (
+                <li
+                  key={i}
+                  className="text-xs sm:text-sm text-slate-700 flex items-start gap-1 sm:gap-2"
+                >
+                  <span className="text-emerald-600 font-bold flex-shrink-0">
+                    ✓
+                  </span>
+                  {resource}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

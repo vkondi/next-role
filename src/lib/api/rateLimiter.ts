@@ -18,6 +18,30 @@ const RATE_LIMIT_CONFIG = {
 };
 
 /**
+ * Check if an IP is the configured local development IP (skip rate limiting)
+ * Allows unlimited requests from the developer's local machine
+ */
+function isLocalIp(ip: string): boolean {
+  if (!ip || ip === "unknown") return false;
+
+  // Get the configured local IP from environment variable
+  const devLocalIp = process.env.DEV_LOCAL_IP;
+
+  // Always allow localhost on the current machine
+  const localhostPatterns = ["127.0.0.1", "::1", "localhost"];
+  if (localhostPatterns.includes(ip)) {
+    return true;
+  }
+
+  // Allow the configured development IP from .env.local
+  if (devLocalIp && ip === devLocalIp) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Check if a request from an IP should be rate limited
  * @param ip - IP address of the requester
  * @returns { allowed: boolean, remaining: number, resetTime: number }
@@ -27,6 +51,15 @@ export function checkRateLimit(ip: string): {
   remaining: number;
   resetTime: number;
 } {
+  // SKIP RATE LIMITING FOR LOCAL IPs
+  if (isLocalIp(ip)) {
+    return {
+      allowed: true,
+      remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY,
+      resetTime: Date.now() + RATE_LIMIT_CONFIG.WINDOW_SIZE_MS,
+    };
+  }
+
   const now = Date.now();
   const record = rateLimitStore.get(ip);
 

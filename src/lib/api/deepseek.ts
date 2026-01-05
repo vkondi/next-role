@@ -21,6 +21,7 @@ interface DeepseekRequest {
   }>;
   temperature: number;
   top_p: number;
+  max_tokens?: number;
 }
 
 interface DeepseekResponse {
@@ -33,8 +34,10 @@ interface DeepseekResponse {
 
 /**
  * Call Deepseek API with a prompt
+ * @param prompt - The prompt to send
+ * @param maxTokens - Maximum tokens in response (default: 1000)
  */
-export async function callDeepseekAPI(prompt: string): Promise<string> {
+export async function callDeepseekAPI(prompt: string, maxTokens: number = 1000): Promise<string> {
   if (!DEEPSEEK_API_KEY) {
     throw new Error(
       "Deepseek API key not configured. Please set DEEPSEEK_API_KEY environment variable."
@@ -50,8 +53,9 @@ export async function callDeepseekAPI(prompt: string): Promise<string> {
           content: prompt,
         },
       ],
-      temperature: 0.05, // Ultra-low temperature for fastest structured output
-      top_p: 0.9, // Reduced from 1.0 for faster token sampling
+      temperature: 0.01, // Ultra-low for fastest, most deterministic output
+      top_p: 0.8, // Further reduced for faster token sampling
+      max_tokens: maxTokens, // Configurable to prevent truncation
     };
 
     const response = await fetch(DEEPSEEK_API_URL, {

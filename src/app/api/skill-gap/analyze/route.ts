@@ -8,6 +8,7 @@ import { SkillGapAnalyzerRequestSchema } from "@/lib/ai/schemas";
 import { analyzeSkillGaps } from "@/lib/ai/prompts/skillGapAnalyzer";
 import { generateMockSkillGapAnalysis } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
+import { responseCache } from "@/lib/api/cache";
 
 const handler = async (request: NextRequest) => {
   try {
@@ -28,6 +29,15 @@ const handler = async (request: NextRequest) => {
 
     const { resumeProfile, careerPath } = validatedData.data;
 
+    // OPTIMIZATION: Check cache before AI call
+    if (!useMock) {
+      const cacheKey = `skillgap_${careerPath.roleId}_${resumeProfile.currentRole}`;
+      const cached = responseCache.get(cacheKey);
+      if (cached) {
+        return NextResponse.json({ success: true, data: cached });
+      }
+    }
+
     let analysis;
     
     if (useMock) {
@@ -37,6 +47,10 @@ const handler = async (request: NextRequest) => {
       // Call actual AI API
       try {
         analysis = await analyzeSkillGaps(resumeProfile, careerPath);
+        
+        // OPTIMIZATION: Cache for 14 days
+        const cacheKey = `skillgap_${careerPath.roleId}_${resumeProfile.currentRole}`;
+        responseCache.set(cacheKey, analysis, 14 * 24 * 60 * 60 * 1000);
       } catch (error) {
         return NextResponse.json(
           {

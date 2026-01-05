@@ -61,6 +61,10 @@ export async function parseResumeInterpreterResponse(
     }
     cleanedText = cleanedText.trim();
 
+    if (!cleanedText || cleanedText === "{}") {
+      throw new Error("Empty or invalid JSON response");
+    }
+
     const parsed = JSON.parse(cleanedText);
     const validated = ResumeProfileSchema.parse(parsed);
     return validated;

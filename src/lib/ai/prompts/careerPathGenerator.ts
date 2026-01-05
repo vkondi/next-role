@@ -3,7 +3,7 @@
  * Suggests 4-6 potential career paths based on user profile
  */
 
-import { CareerPathSchema } from "../schemas";
+import { CareerPathSchema, CareerPathMinimalSchema } from "../schemas";
 import type { CareerPath, CareerPathMinimal, ResumeProfile } from "../schemas";
 import { z } from "zod";
 import { callDeepseekAPI } from "@/lib/api/deepseek";
@@ -26,36 +26,25 @@ Return ONLY valid JSON array, no text:
 /**
  * Detailed prompt - For a selected path only
  * Fetched AFTER user selects from carousel
+ * OPTIMIZED: Reduced prompt by 60% for faster inference
  */
 export function createCareerPathDetailsPrompt(
   resumeProfile: ResumeProfile,
   pathName: string
 ): string {
-  return `You are an expert career strategist. Provide detailed analysis for a specific career path.
+  return `Analyze "${pathName}" for ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y).
 
-IMPORTANT: You MUST respond with ONLY valid JSON, no markdown, no code blocks, no extra text.
+CRITICAL ENUM CONSTRAINTS:
+- effortLevel MUST be exactly one of: "Low", "Medium", "High"
+- rewardPotential MUST be exactly one of: "Low", "Medium", "High"
 
-Professional Profile:
-- Current Role: ${resumeProfile.currentRole}
-- Years of Experience: ${resumeProfile.yearsOfExperience}
-- Strengths: ${resumeProfile.strengthAreas.join(", ")}
-- Background: ${resumeProfile.industryBackground}
-
-Provide comprehensive details for: "${pathName}"
-
-Return ONLY this JSON structure:
+Respond with ONLY valid JSON:
 {
-  "effortLevel": "Low|Medium|High",
-  "rewardPotential": "Low|Medium|High",
-  "reasoning": "2-3 sentences explaining why this path fits",
-  "detailedDescription": "3-4 sentences about responsibilities and growth potential"
-}
-
-REQUIREMENTS:
-- Return ONLY JSON, no additional text
-- Effort/Reward: Must be exactly "Low", "Medium", or "High"
-- Reasoning: Specific to this person's background
-- Description: Detailed but concise`;
+  "effortLevel": "High",
+  "rewardPotential": "High",
+  "reasoning": "1-2 sentences why this path is suitable",
+  "detailedDescription": "2-3 sentences about role, responsibilities and growth"
+}`;
 }
 
 /**
@@ -81,15 +70,18 @@ export async function parseCareerPathMinimalResponse(
       throw new Error("Response is not a valid array");
     }
     
-    // Map condensed field names to full structure
-    return parsed.map((item) => ({
+    // Map condensed field names to full structure and validate with Zod
+    const mapped = parsed.map((item) => ({
       roleId: (item.id || item.roleId) as string,
       roleName: (item.name || item.roleName) as string,
       description: (item.desc || item.description) as string,
       marketDemandScore: (item.mkt || item.marketDemandScore) as number,
       industryAlignment: (item.ind || item.industryAlignment) as number,
       requiredSkills: (item.skl || item.requiredSkills) as string[],
-    })) as CareerPathMinimal[];
+    }));
+    
+    // Validate with schema
+    return z.array(CareerPathMinimalSchema).parse(mapped);
   } catch (error) {
     throw new Error(
       `Failed to parse career paths: ${error instanceof Error ? error.message : String(error)}`
@@ -107,6 +99,10 @@ export async function parseCareerPathDetailsResponse(responseText: string) {
     if (cleanedText.startsWith("```")) cleanedText = cleanedText.substring(3);
     if (cleanedText.endsWith("```")) cleanedText = cleanedText.substring(0, cleanedText.length - 3);
     cleanedText = cleanedText.trim();
+
+    if (!cleanedText || cleanedText === "{}") {
+      throw new Error("Empty or invalid JSON response");
+    }
 
     const parsed = JSON.parse(cleanedText);
     return z.object({

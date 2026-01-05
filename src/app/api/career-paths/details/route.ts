@@ -9,6 +9,7 @@ import { z } from "zod";
 import { generateCareerPathDetails } from "@/lib/ai/prompts/careerPathGenerator";
 import { generateMockCareerPathDetails } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
+import { responseCache } from "@/lib/api/cache";
 
 // Request schema for details
 const CareerPathDetailsRequestSchema = z.object({
@@ -44,6 +45,15 @@ const handler = async (request: NextRequest) => {
 
     const { resumeProfile, pathBasic } = validatedData.data;
 
+    // OPTIMIZATION: Check cache before AI call
+    if (!useMock) {
+      const cacheKey = `details_${pathBasic.roleId}_${resumeProfile.currentRole}`;
+      const cached = responseCache.get(cacheKey);
+      if (cached) {
+        return NextResponse.json({ success: true, data: cached });
+      }
+    }
+
     let details;
 
     if (useMock) {
@@ -53,6 +63,10 @@ const handler = async (request: NextRequest) => {
       // Call actual AI API for detailed information
       try {
         details = await generateCareerPathDetails(resumeProfile, pathBasic);
+        
+        // OPTIMIZATION: Cache for 7 days
+        const cacheKey = `details_${pathBasic.roleId}_${resumeProfile.currentRole}`;
+        responseCache.set(cacheKey, details, 7 * 24 * 60 * 60 * 1000);
       } catch (error) {
         return NextResponse.json(
           {
