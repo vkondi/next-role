@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const token = process.env.CLOUDFLARE_WEB_ANALYTICS_TOKEN;
-  
+
   return (
     <html lang="en">
       <head>
@@ -42,12 +42,14 @@ export default function RootLayout({
           </ResumeProvider>
         </ApiModeProvider>
 
-        {/* Cloudflare Web Analytics  */}
-        <script
-          defer
-          src="https://static.cloudflareinsights.com/beacon.min.js"
-          data-cf-beacon={`{"token": "${token}"}`}
-        ></script>
+        {/* Cloudflare Web Analytics - Only load if token exists */}
+        {token && (
+          <script
+            defer
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon={`{"token": "${token}"}`}
+          ></script>
+        )}
         {/* End Cloudflare Web Analytics */}
       </body>
     </html>
