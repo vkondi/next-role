@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { RoadmapGeneratorRequestSchema } from "@/lib/ai/schemas";
 import { generateRoadmap } from "@/lib/ai/prompts/roadmapGenerator";
 import { generateMockRoadmap } from "@/lib/api/mockData";
-import { withRateLimit } from "@/lib/api/rateLimiter";
 import { responseCache } from "@/lib/api/cache";
 
 const handler = async (request: NextRequest) => {
@@ -83,4 +82,4 @@ const handler = async (request: NextRequest) => {
   }
 };
 
-export const POST = withRateLimit(handler); // Uses AI to generate roadmap
+export const POST = handler;

@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { generateCareerPathDetails } from "@/lib/ai/prompts/careerPathGenerator";
 import { generateMockCareerPathDetails } from "@/lib/api/mockData";
-import { withRateLimit } from "@/lib/api/rateLimiter";
 import { responseCache } from "@/lib/api/cache";
 
 const CareerPathDetailsRequestSchema = z.object({
@@ -83,4 +82,4 @@ const handler = async (request: NextRequest) => {
   }
 };
 
-export const POST = withRateLimit(handler);
+export const POST = handler;

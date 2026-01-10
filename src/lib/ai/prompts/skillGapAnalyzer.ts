@@ -90,6 +90,14 @@ export async function parseSkillGapAnalyzerResponse(
         ...gap,
         importance: normalizeEnum(gap.importance),
       }));
+      
+      // Sort by importance: High > Medium > Low
+      const importancePriority = { "High": 3, "Medium": 2, "Low": 1 };
+      parsed.skillGaps.sort((a: any, b: any) => {
+        const aPriority = importancePriority[a.importance as keyof typeof importancePriority] || 0;
+        const bPriority = importancePriority[b.importance as keyof typeof importancePriority] || 0;
+        return bPriority - aPriority;
+      });
     }
     
     const validated = SkillGapAnalysisSchema.parse(parsed);

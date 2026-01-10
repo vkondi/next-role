@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { SkillGapAnalyzerRequestSchema } from "@/lib/ai/schemas";
 import { analyzeSkillGaps } from "@/lib/ai/prompts/skillGapAnalyzer";
 import { generateMockSkillGapAnalysis } from "@/lib/api/mockData";
-import { withRateLimit } from "@/lib/api/rateLimiter";
 import { responseCache } from "@/lib/api/cache";
 
 const handler = async (request: NextRequest) => {
@@ -72,4 +71,4 @@ const handler = async (request: NextRequest) => {
   }
 };
 
-export const POST = withRateLimit(handler);
+export const POST = handler;
