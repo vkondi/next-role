@@ -16,7 +16,7 @@ export function createCareerPathMinimalPrompt(
 Profile: ${resumeProfile.currentRole}, ${resumeProfile.yearsOfExperience}yr, ${topTechs}
 
 RESPOND ONLY WITH VALID JSON ARRAY (no other text):
-[{"id":"p1","name":"Role","desc":"desc","mkt":85,"ind":90,"skl":["s1","s2"]}]`;
+[{"id":"p1","name":"Role","desc":"desc","mkt":0-100,"ind":0-100,"skl":["s1","s2"]}]`;
 }
 
 /** Detailed prompt for selected path */
@@ -26,7 +26,7 @@ export function createCareerPathDetailsPrompt(
 ): string {
   return `Analyze career path "${pathName}" for ${resumeProfile.currentRole}.
 
-Return ONLY this JSON with EXACT enum values:
+Use EXACT enum values. Return ONLY this JSON:
 {"effortLevel":"Low|Medium|High","rewardPotential":"Low|Medium|High","why":"reason","desc":"info"}`;
 }
 

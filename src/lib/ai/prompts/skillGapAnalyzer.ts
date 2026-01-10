@@ -25,11 +25,11 @@ Target Role: ${careerPath.roleName}
 Required Skills: ${topSkills.join(", ")}
 
 For each required skill, determine:
-1. The professional's current level (None, Beginner, Intermediate, Advanced, Expert)
-2. The required level for the target role
-3. Importance of this skill (Low, Medium, High)
+1. The professional's current level (EXACT: None|Beginner|Intermediate|Advanced|Expert)
+2. The required level for the target role (EXACT: None|Beginner|Intermediate|Advanced|Expert)
+3. Importance of this skill (EXACT: Low|Medium|High - never use Very High/Very Low)
 4. Estimated time to close the gap
-5. Overall gap severity (Low, Medium, High)
+5. Overall gap severity (EXACT: Low|Medium|High - never use Very High/Very Low)
 
 Respond with ONLY valid JSON matching this schema:
 {
@@ -73,6 +73,25 @@ export async function parseSkillGapAnalyzerResponse(
     }
     
     const parsed = JSON.parse(cleanedText);
+    
+    // Normalize enum values: "Very High"/"Very Low" -> "High"/"Low"
+    const normalizeEnum = (value: unknown): string => {
+      if (typeof value !== "string") return String(value);
+      if (value === "Very High" || value === "Very Low") return value === "Very High" ? "High" : "Low";
+      return value;
+    };
+    
+    // Normalize all severity and importance fields
+    if (parsed.overallGapSeverity) {
+      parsed.overallGapSeverity = normalizeEnum(parsed.overallGapSeverity);
+    }
+    if (Array.isArray(parsed.skillGaps)) {
+      parsed.skillGaps = parsed.skillGaps.map((gap: any) => ({
+        ...gap,
+        importance: normalizeEnum(gap.importance),
+      }));
+    }
+    
     const validated = SkillGapAnalysisSchema.parse(parsed);
     return validated;
   } catch (error) {

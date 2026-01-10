@@ -27,7 +27,7 @@ export function createRoadmapGeneratorPrompt(
   return `Create 2-phase ${timelineMonths}-month roadmap: ${careerPath.roleName}
 Current: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y)
 Skills: ${criticalSkills}
-Severity: ${skillGapAnalysis.overallGapSeverity}
+Severity: ${skillGapAnalysis.overallGapSeverity} (EXACT: Low|Medium|High - never Very High)
 
 Return ONLY valid JSON:
 {
@@ -83,29 +83,25 @@ export async function parseRoadmapGeneratorResponse(
       throw new Error("Empty or invalid JSON response");
     }
 
+    let parsed = JSON.parse(cleanedText);
+    
     // Try to parse as-is first
     try {
-      const parsed = JSON.parse(cleanedText);
       const validated = CareerRoadmapSchema.parse(parsed);
       return validated;
     } catch (parseError) {
       // If parsing fails, try to repair truncated JSON
       if (parseError instanceof SyntaxError && cleanedText.includes("{")) {
-        // Likely truncated - try to fix common truncation patterns
         let repaired = cleanedText;
-        
-        // Count unclosed brackets
         const openBraces = (repaired.match(/{/g) || []).length;
         const closeBraces = (repaired.match(/}/g) || []).length;
         const openBrackets = (repaired.match(/\[/g) || []).length;
         const closeBrackets = (repaired.match(/]/g) || []).length;
         
-        // Add closing brackets if truncated
         repaired += "]".repeat(Math.max(0, openBrackets - closeBrackets));
         repaired += "}".repeat(Math.max(0, openBraces - closeBraces));
         
-        // Try parsing the repaired version
-        const parsed = JSON.parse(repaired);
+        parsed = JSON.parse(repaired);
         const validated = CareerRoadmapSchema.parse(parsed);
         return validated;
       }
