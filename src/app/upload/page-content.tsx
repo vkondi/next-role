@@ -21,7 +21,7 @@ export default function UploadPageContent() {
   const [profile, setProfile] = useState<ResumeProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadMethod, setUploadMethod] = useState<"text" | "file">("text");
+  const [uploadMethod, setUploadMethod] = useState<"text" | "file">("file");
   const [fileError, setFileError] = useState<string | null>(null);
 
   // Auto-scroll to extracted text when file is successfully parsed
@@ -348,16 +348,6 @@ export default function UploadPageContent() {
           {/* Upload Method Tabs */}
           <div className="flex gap-1 sm:gap-2 border-b border-slate-200 overflow-x-auto">
             <button
-              onClick={() => setUploadMethod("text")}
-              className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold border-b-2 transition-colors text-sm sm:text-base whitespace-nowrap ${
-                uploadMethod === "text"
-                  ? "border-emerald-600 text-emerald-600"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Paste Text
-            </button>
-            <button
               onClick={() => setUploadMethod("file")}
               className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold border-b-2 transition-colors text-sm sm:text-base whitespace-nowrap ${
                 uploadMethod === "file"
@@ -366,6 +356,16 @@ export default function UploadPageContent() {
               }`}
             >
               Upload File
+            </button>
+            <button
+              onClick={() => setUploadMethod("text")}
+              className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold border-b-2 transition-colors text-sm sm:text-base whitespace-nowrap ${
+                uploadMethod === "text"
+                  ? "border-emerald-600 text-emerald-600"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Paste Text
             </button>
           </div>
 
