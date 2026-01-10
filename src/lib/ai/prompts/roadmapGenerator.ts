@@ -20,26 +20,16 @@ export function createRoadmapGeneratorPrompt(
 ): string {
   const criticalSkills = skillGapAnalysis.skillGaps
     .filter((sg) => sg.importance === "High")
+    .slice(0, 3)
     .map((sg) => sg.skillName)
     .join(", ");
 
-  return `You are an expert career coach and learning strategist. Your task is to create a detailed, actionable career transition roadmap.
+  return `Create 2-phase ${timelineMonths}-month roadmap: ${careerPath.roleName}
+Current: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y)
+Skills: ${criticalSkills}
+Severity: ${skillGapAnalysis.overallGapSeverity} (EXACT: Low|Medium|High - never Very High)
 
-IMPORTANT: You MUST respond with ONLY valid JSON, no markdown formatting, no code blocks, no extra text.
-
-Professional Context:
-- Current Role: ${resumeProfile.currentRole}
-- Target Role: ${careerPath.roleName}
-- Experience Level: ${resumeProfile.yearsOfExperience} years
-- Timeline: ${timelineMonths} months
-- Critical Skills to Develop: ${criticalSkills}
-
-Overall Skill Gap Severity: ${skillGapAnalysis.overallGapSeverity}
-Estimated Time to Close Gaps: ${skillGapAnalysis.estimatedTimeToClose}
-
-Create a ${timelineMonths}-month roadmap with ${Math.ceil(timelineMonths / 2)}-${Math.ceil(timelineMonths / 1.5)} phases. Each phase should build progressively toward the target role.
-
-Return a JSON object with this exact structure:
+Return ONLY valid JSON:
 {
   "careerPathId": "${careerPath.roleId}",
   "careerPathName": "${careerPath.roleName}",
@@ -47,33 +37,31 @@ Return a JSON object with this exact structure:
   "phases": [
     {
       "phaseNumber": 1,
-      "duration": "string - e.g., 'Month 1-2'",
-      "skillsFocus": ["array of 3-5 skills to focus on in this phase"],
-      "learningDirection": "string - clear learning goal for this phase",
-      "projectIdeas": ["array of 2-3 concrete project ideas to apply learning"],
-      "milestones": ["array of 2-3 measurable milestones"],
-      "actionItems": ["array of 4-6 specific weekly/bi-weekly actions"]
+      "duration": "Month 1-${Math.ceil(timelineMonths / 2)}",
+      "skillsFocus": ["skill1", "skill2"],
+      "learningDirection": "Build foundation",
+      "projectIdeas": ["1-2 projects"],
+      "milestones": ["Course + basic project"],
+      "actionItems": ["Learn and build"]
+    },
+    {
+      "phaseNumber": 2,
+      "duration": "Month ${Math.ceil(timelineMonths / 2) + 1}-${timelineMonths}",
+      "skillsFocus": ["skill2", "skill3"],
+      "learningDirection": "Gain expertise",
+      "projectIdeas": ["Advanced project"],
+      "milestones": ["Portfolio ready"],
+      "actionItems": ["Refine and prepare"]
     }
   ],
-  "successMetrics": ["array of 3-5 metrics to measure success"],
-  "riskFactors": ["array of 2-3 potential challenges to watch for"],
-  "supportResources": ["array of resources: courses, communities, mentors, etc."]
-}
-
-STRICT REQUIREMENTS:
-- Return ONLY the JSON object, no additional text
-- Create ${Math.ceil(timelineMonths / 2)}-${Math.ceil(timelineMonths / 1.5)} phases
-- Each phase should be 1-3 months duration
-- Project ideas must be specific and realistic
-- Action items must be concrete and achievable
-- Milestones should be measurable (e.g., "complete X course", "build Y project")
-- Success metrics should be tangible and relevant to the target role
-- Support resources should include specific courses, communities, or mentorship paths
-- Each phase should build on the previous one progressively`;
+  "successMetrics": ["Portfolio"],
+  "riskFactors": ["Time"]
+}`;
 }
 
 /**
  * Parses and validates the AI response for roadmap generation
+ * Includes JSON repair for truncated responses
  */
 export async function parseRoadmapGeneratorResponse(
   responseText: string
@@ -91,9 +79,34 @@ export async function parseRoadmapGeneratorResponse(
     }
     cleanedText = cleanedText.trim();
 
-    const parsed = JSON.parse(cleanedText);
-    const validated = CareerRoadmapSchema.parse(parsed);
-    return validated;
+    if (!cleanedText || cleanedText === "{}") {
+      throw new Error("Empty or invalid JSON response");
+    }
+
+    let parsed = JSON.parse(cleanedText);
+    
+    // Try to parse as-is first
+    try {
+      const validated = CareerRoadmapSchema.parse(parsed);
+      return validated;
+    } catch (parseError) {
+      // If parsing fails, try to repair truncated JSON
+      if (parseError instanceof SyntaxError && cleanedText.includes("{")) {
+        let repaired = cleanedText;
+        const openBraces = (repaired.match(/{/g) || []).length;
+        const closeBraces = (repaired.match(/}/g) || []).length;
+        const openBrackets = (repaired.match(/\[/g) || []).length;
+        const closeBrackets = (repaired.match(/]/g) || []).length;
+        
+        repaired += "]".repeat(Math.max(0, openBrackets - closeBrackets));
+        repaired += "}".repeat(Math.max(0, openBraces - closeBraces));
+        
+        parsed = JSON.parse(repaired);
+        const validated = CareerRoadmapSchema.parse(parsed);
+        return validated;
+      }
+      throw parseError;
+    }
   } catch (error) {
     throw new Error(
       `Failed to parse roadmap generator response: ${error instanceof Error ? error.message : String(error)}`
@@ -117,8 +130,7 @@ export async function generateRoadmap(
     timelineMonths
   );
 
-  // Call Deepseek API
-  const response = await callDeepseekAPI(prompt);
+  const response = await callDeepseekAPI(prompt, 1200);
   const roadmap = await parseRoadmapGeneratorResponse(response);
 
   return roadmap;

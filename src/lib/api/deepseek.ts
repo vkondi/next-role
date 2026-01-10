@@ -1,7 +1,4 @@
-/**
- * Deepseek API Integration
- * Handles communication with Deepseek API for AI-powered career analysis
- */
+/** Deepseek API integration for AI-powered career analysis */
 
 import { Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
@@ -9,7 +6,6 @@ import { Agent as HttpsAgent } from "https";
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
-// Connection pooling agents for better performance
 const httpAgent = new HttpAgent({ keepAlive: true, maxSockets: 10 });
 const httpsAgent = new HttpsAgent({ keepAlive: true, maxSockets: 10 });
 
@@ -21,6 +17,7 @@ interface DeepseekRequest {
   }>;
   temperature: number;
   top_p: number;
+  max_tokens?: number;
 }
 
 interface DeepseekResponse {
@@ -31,10 +28,7 @@ interface DeepseekResponse {
   }>;
 }
 
-/**
- * Call Deepseek API with a prompt
- */
-export async function callDeepseekAPI(prompt: string): Promise<string> {
+export async function callDeepseekAPI(prompt: string, maxTokens: number = 1000): Promise<string> {
   if (!DEEPSEEK_API_KEY) {
     throw new Error(
       "Deepseek API key not configured. Please set DEEPSEEK_API_KEY environment variable."
@@ -50,8 +44,9 @@ export async function callDeepseekAPI(prompt: string): Promise<string> {
           content: prompt,
         },
       ],
-      temperature: 0.05, // Ultra-low temperature for fastest structured output
-      top_p: 0.9, // Reduced from 1.0 for faster token sampling
+      temperature: 0.01,
+      top_p: 0.3,
+      max_tokens: maxTokens,
     };
 
     const response = await fetch(DEEPSEEK_API_URL, {

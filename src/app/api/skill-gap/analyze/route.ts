@@ -1,20 +1,17 @@
-/**
- * POST /api/skill-gap/analyze
- * Analyzes skill gaps for a selected career path
- */
+/** POST /api/skill-gap/analyze - Analyzes skill gaps for selected path */
 
 import { NextRequest, NextResponse } from "next/server";
 import { SkillGapAnalyzerRequestSchema } from "@/lib/ai/schemas";
 import { analyzeSkillGaps } from "@/lib/ai/prompts/skillGapAnalyzer";
 import { generateMockSkillGapAnalysis } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
+import { responseCache } from "@/lib/api/cache";
 
 const handler = async (request: NextRequest) => {
   try {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
-    // Validate request
     const validatedData = SkillGapAnalyzerRequestSchema.safeParse(body);
     if (!validatedData.success) {
       return NextResponse.json(
@@ -28,15 +25,26 @@ const handler = async (request: NextRequest) => {
 
     const { resumeProfile, careerPath } = validatedData.data;
 
+    if (!useMock) {
+      const techKey = resumeProfile.techStack.slice(0, 3).join("_");
+      const cacheKey = `skillgap_${careerPath.roleId}_${resumeProfile.currentRole}_${resumeProfile.yearsOfExperience}_${techKey}`;
+      const cached = responseCache.get(cacheKey);
+      if (cached) {
+        return NextResponse.json({ success: true, data: cached });
+      }
+    }
+
     let analysis;
     
     if (useMock) {
-      // Use mock data
       analysis = generateMockSkillGapAnalysis(resumeProfile, careerPath);
     } else {
-      // Call actual AI API
       try {
         analysis = await analyzeSkillGaps(resumeProfile, careerPath);
+        
+        const techKey = resumeProfile.techStack.slice(0, 3).join("_");
+        const cacheKey = `skillgap_${careerPath.roleId}_${resumeProfile.currentRole}_${resumeProfile.yearsOfExperience}_${techKey}`;
+        responseCache.set(cacheKey, analysis, 14 * 24 * 60 * 60 * 1000);
       } catch (error) {
         return NextResponse.json(
           {
@@ -64,4 +72,4 @@ const handler = async (request: NextRequest) => {
   }
 };
 
-export const POST = withRateLimit(handler); // Uses AI to analyze skill gaps
+export const POST = withRateLimit(handler);

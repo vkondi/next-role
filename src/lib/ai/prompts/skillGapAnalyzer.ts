@@ -1,7 +1,4 @@
-/**
- * Skill Gap Analyzer Prompt Module
- * Analyzes gaps between current skills and target role requirements
- */
+/** Skill gap analyzer prompt module */
 
 import { SkillGapAnalysisSchema } from "../schemas";
 import type {
@@ -11,101 +8,105 @@ import type {
 } from "../schemas";
 import { callDeepseekAPI } from "@/lib/api/deepseek";
 
+/** Create skill gap analysis prompt */
 export function createSkillGapAnalyzerPrompt(
   resumeProfile: ResumeProfile,
   careerPath: CareerPath
 ): string {
-  return `You are an expert skill development strategist. Your task is to analyze skill gaps between a professional's current abilities and a target role's requirements.
+  const topSkills = careerPath.requiredSkills.slice(0, 6);
 
-IMPORTANT: You MUST respond with ONLY valid JSON, no markdown formatting, no code blocks, no extra text.
+  return `You are a career development expert. Analyze the skill gaps between a professional's current state and their target role.
 
-Current Professional Profile:
-- Current Role: ${resumeProfile.currentRole}
-- Years of Experience: ${resumeProfile.yearsOfExperience}
-- Current Tech Stack: ${resumeProfile.techStack.join(", ")}
-- Strength Areas: ${resumeProfile.strengthAreas.join(", ")}
+Current Role: ${resumeProfile.currentRole}
+Years of Experience: ${resumeProfile.yearsOfExperience}
+Current Tech Stack: ${resumeProfile.techStack.join(", ")}
 
-Target Career Path:
-- Role Name: ${careerPath.roleName}
-- Description: ${careerPath.description}
-- Required Skills: ${careerPath.requiredSkills.join(", ")}
+Target Role: ${careerPath.roleName}
+Required Skills: ${topSkills.join(", ")}
 
-Analyze the skill gaps comprehensively and estimate:
-1. Current proficiency level for each required skill (if known from tech stack)
-2. Required proficiency level for each skill
-3. Importance of each gap
-4. Learning resources for closing gaps
+For each required skill, determine:
+1. The professional's current level (EXACT: None|Beginner|Intermediate|Advanced|Expert)
+2. The required level for the target role (EXACT: None|Beginner|Intermediate|Advanced|Expert)
+3. Importance of this skill (EXACT: Low|Medium|High - never use Very High/Very Low)
+4. Estimated time to close the gap
+5. Overall gap severity (EXACT: Low|Medium|High - never use Very High/Very Low)
 
-Return a JSON object with this exact structure:
+Respond with ONLY valid JSON matching this schema:
 {
-  "careerPathId": "${careerPath.roleId}",
-  "careerPathName": "${careerPath.roleName}",
+  "careerPathId": "string",
+  "careerPathName": "string",
   "skillGaps": [
     {
-      "skillName": "string - name of the skill",
+      "skillName": "string",
       "currentLevel": "None|Beginner|Intermediate|Advanced|Expert",
       "requiredLevel": "None|Beginner|Intermediate|Advanced|Expert",
-      "importance": "Low|Medium|High",
-      "learningResources": ["optional array of resource suggestions"]
+      "importance": "Low|Medium|High"
     }
   ],
   "overallGapSeverity": "Low|Medium|High",
-  "estimatedTimeToClose": "string - e.g. '3-6 months' or '6-12 months'",
-  "summary": "string - brief summary of the key gaps and challenges"
+  "estimatedTimeToClose": "string",
+  "summary": "string"
+}`;
 }
 
-STRICT REQUIREMENTS:
-- Return ONLY the JSON object, no additional text
-- skillGaps must include all required skills from the career path
-- currentLevel should reflect expertise from their tech stack and experience
-- requiredLevel should be realistic for the role
-- importance must be "Low", "Medium", or "High"
-- Learning resources should be specific and actionable
-- estimatedTimeToClose should be realistic and achievable
-- summary should be encouraging but honest about the effort needed`;
-}
-
-/**
- * Parses and validates the AI response for skill gap analysis
- */
+/** Parses skill gap analysis response */
 export async function parseSkillGapAnalyzerResponse(
   responseText: string
 ): Promise<SkillGapAnalysis> {
   try {
     let cleanedText = responseText.trim();
-    if (cleanedText.startsWith("```json")) {
-      cleanedText = cleanedText.substring(7);
-    }
+    
+    // Remove markdown code blocks
     if (cleanedText.startsWith("```")) {
-      cleanedText = cleanedText.substring(3);
+      cleanedText = cleanedText.replace(/^```[^\n]*\n?/, "").replace(/\n?```$/, "");
     }
-    if (cleanedText.endsWith("```")) {
-      cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+    
+    // Extract JSON if wrapped in text
+    if (!cleanedText.startsWith("{")) {
+      const jsonStart = cleanedText.indexOf("{");
+      if (jsonStart !== -1) {
+        const jsonEnd = cleanedText.lastIndexOf("}");
+        if (jsonEnd !== -1) {
+          cleanedText = cleanedText.substring(jsonStart, jsonEnd + 1);
+        }
+      }
     }
-    cleanedText = cleanedText.trim();
-
+    
     const parsed = JSON.parse(cleanedText);
+    
+    // Normalize enum values: "Very High"/"Very Low" -> "High"/"Low"
+    const normalizeEnum = (value: unknown): string => {
+      if (typeof value !== "string") return String(value);
+      if (value === "Very High" || value === "Very Low") return value === "Very High" ? "High" : "Low";
+      return value;
+    };
+    
+    // Normalize all severity and importance fields
+    if (parsed.overallGapSeverity) {
+      parsed.overallGapSeverity = normalizeEnum(parsed.overallGapSeverity);
+    }
+    if (Array.isArray(parsed.skillGaps)) {
+      parsed.skillGaps = parsed.skillGaps.map((gap: any) => ({
+        ...gap,
+        importance: normalizeEnum(gap.importance),
+      }));
+    }
+    
     const validated = SkillGapAnalysisSchema.parse(parsed);
     return validated;
   } catch (error) {
     throw new Error(
-      `Failed to parse skill gap analyzer response: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to parse skill gap response: ${error instanceof Error ? error.message : "Invalid JSON"}`
     );
   }
 }
 
-/**
- * Skill Gap Analyzer function
- */
 export async function analyzeSkillGaps(
   resumeProfile: ResumeProfile,
   careerPath: CareerPath
 ): Promise<SkillGapAnalysis> {
   const prompt = createSkillGapAnalyzerPrompt(resumeProfile, careerPath);
-
-  // Call Deepseek API
-  const response = await callDeepseekAPI(prompt);
+  const response = await callDeepseekAPI(prompt, 1100);
   const analysis = await parseSkillGapAnalyzerResponse(response);
-
   return analysis;
 }

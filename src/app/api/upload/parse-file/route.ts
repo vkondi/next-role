@@ -1,29 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import PDFParser from "pdf2json";
 
-/**
- * Cleans PDF extracted text that has spaces between every character
- * Pattern: "e x p e r i e n c e" -> "experience"
- */
+/** Cleans PDF extracted text with spaces between characters */
 function cleanPdfText(rawText: string): string {
   let text = rawText;
 
-  // Pattern 1: Aggressively remove spaces between single letters/numbers
-  // This handles: "e x p e r i e n c e" -> "experience"
-  // Match single char followed by space, repeat 2+ times
+  // Remove spaces between single chars (e.g., "e x p e r i e n c e" -> "experience")
   text = text.replace(/([a-zA-Z0-9])\s+([a-zA-Z0-9])\s+/g, (_match, char1, char2) => {
-    // If we found a pattern of char space char space, remove the spaces
     return char1 + char2;
   });
   
-  // Keep removing spaces between chars until no more patterns match
+  // Keep removing spaces between chars until stabilized
   let prevText = "";
   while (prevText !== text) {
     prevText = text;
     text = text.replace(/([a-zA-Z0-9])\s+([a-zA-Z0-9])/g, "$1$2");
   }
 
-  // Pattern 2: Normalize whitespace
+  // Normalize whitespace
   text = text.replace(/\s+/g, " ").trim();
 
   return text;

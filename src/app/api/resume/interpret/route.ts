@@ -1,20 +1,18 @@
-/**
- * POST /api/resume/interpret
- * Interprets uploaded resume text and extracts structured profile
- */
+/** POST /api/resume/interpret - Interprets resume text to structured profile */
 
 import { NextRequest, NextResponse } from "next/server";
 import { ResumeInterpreterRequestSchema } from "@/lib/ai/schemas";
 import { interpretResume } from "@/lib/ai/prompts/resumeInterpreter";
 import { generateMockResumeProfile } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
+import { responseCache } from "@/lib/api/cache";
+import crypto from "crypto";
 
 const handler = async (request: NextRequest) => {
   try {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
-    // Validate request
     const validatedData = ResumeInterpreterRequestSchema.safeParse(body);
     if (!validatedData.success) {
       return NextResponse.json(
@@ -31,20 +29,26 @@ const handler = async (request: NextRequest) => {
     let profile;
     
     if (useMock) {
-      // Use mock data
       profile = generateMockResumeProfile(resumeText);
     } else {
-      // Call actual AI API
-      try {
-        profile = await interpretResume(resumeText);
-      } catch (error) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Failed to interpret resume: ${error instanceof Error ? error.message : String(error)}`,
-          },
-          { status: 500 }
-        );
+      const cacheKey = crypto.createHash("sha256").update(resumeText).digest("hex");
+      const cachedProfile = responseCache.get(cacheKey);
+      
+      if (cachedProfile) {
+        profile = cachedProfile;
+      } else {
+        try {
+          profile = await interpretResume(resumeText);
+          responseCache.set(cacheKey, profile, 24 * 60 * 60 * 1000);
+        } catch (error) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Failed to interpret resume: ${error instanceof Error ? error.message : String(error)}`,
+            },
+            { status: 500 }
+          );
+        }
       }
     }
 
@@ -64,4 +68,4 @@ const handler = async (request: NextRequest) => {
   }
 };
 
-export const POST = withRateLimit(handler); // Uses AI to interpret resume
+export const POST = withRateLimit(handler);

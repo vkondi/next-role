@@ -1,20 +1,17 @@
-/**
- * POST /api/roadmap/generate
- * Generates a month-by-month career transition roadmap
- */
+/** POST /api/roadmap/generate - Generates career transition roadmap */
 
 import { NextRequest, NextResponse } from "next/server";
 import { RoadmapGeneratorRequestSchema } from "@/lib/ai/schemas";
 import { generateRoadmap } from "@/lib/ai/prompts/roadmapGenerator";
 import { generateMockRoadmap } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
+import { responseCache } from "@/lib/api/cache";
 
 const handler = async (request: NextRequest) => {
   try {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
-    // Validate request
     const validatedData = RoadmapGeneratorRequestSchema.safeParse(body);
     if (!validatedData.success) {
       return NextResponse.json(
@@ -29,6 +26,19 @@ const handler = async (request: NextRequest) => {
     const { resumeProfile, careerPath, skillGapAnalysis, timelineMonths = 6 } =
       validatedData.data;
 
+    if (!useMock) {
+      const skillKey = skillGapAnalysis.skillGaps
+        .filter((sg) => sg.importance === "High")
+        .slice(0, 3)
+        .map((sg) => sg.skillName)
+        .join("_");
+      const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${skillKey}`;
+      const cached = responseCache.get(cacheKey);
+      if (cached) {
+        return NextResponse.json({ success: true, data: cached });
+      }
+    }
+
     let roadmap;
     
     if (useMock) {
@@ -38,6 +48,14 @@ const handler = async (request: NextRequest) => {
       // Call actual AI API
       try {
         roadmap = await generateRoadmap(resumeProfile, careerPath, skillGapAnalysis, timelineMonths);
+        
+        const skillKey = skillGapAnalysis.skillGaps
+          .filter((sg) => sg.importance === "High")
+          .slice(0, 3)
+          .map((sg) => sg.skillName)
+          .join("_");
+        const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${skillKey}`;
+        responseCache.set(cacheKey, roadmap, 30 * 24 * 60 * 60 * 1000);
       } catch (error) {
         return NextResponse.json(
           {

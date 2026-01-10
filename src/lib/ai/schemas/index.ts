@@ -176,6 +176,7 @@ export const CareerRoadmapSchema = z.object({
   riskFactors: z.array(z.string()).describe("Potential challenges or risks"),
   supportResources: z
     .array(z.string())
+    .optional()
     .describe("Resources and support needed"),
 });
 
