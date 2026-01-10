@@ -1,7 +1,4 @@
-/**
- * POST /api/skill-gap/analyze
- * Analyzes skill gaps for a selected career path
- */
+/** POST /api/skill-gap/analyze - Analyzes skill gaps for selected path */
 
 import { NextRequest, NextResponse } from "next/server";
 import { SkillGapAnalyzerRequestSchema } from "@/lib/ai/schemas";
@@ -15,7 +12,6 @@ const handler = async (request: NextRequest) => {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
-    // Validate request
     const validatedData = SkillGapAnalyzerRequestSchema.safeParse(body);
     if (!validatedData.success) {
       return NextResponse.json(

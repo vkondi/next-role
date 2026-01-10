@@ -1,7 +1,4 @@
-/**
- * Deepseek API Integration
- * Handles communication with Deepseek API for AI-powered career analysis
- */
+/** Deepseek API integration for AI-powered career analysis */
 
 import { Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
@@ -9,7 +6,6 @@ import { Agent as HttpsAgent } from "https";
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
-// Connection pooling agents for better performance
 const httpAgent = new HttpAgent({ keepAlive: true, maxSockets: 10 });
 const httpsAgent = new HttpsAgent({ keepAlive: true, maxSockets: 10 });
 
@@ -32,11 +28,6 @@ interface DeepseekResponse {
   }>;
 }
 
-/**
- * Call Deepseek API with a prompt
- * @param prompt - The prompt to send
- * @param maxTokens - Maximum tokens in response (default: 1000)
- */
 export async function callDeepseekAPI(prompt: string, maxTokens: number = 1000): Promise<string> {
   if (!DEEPSEEK_API_KEY) {
     throw new Error(
@@ -53,9 +44,9 @@ export async function callDeepseekAPI(prompt: string, maxTokens: number = 1000):
           content: prompt,
         },
       ],
-      temperature: 0.01, // Ultra-low for fastest, most deterministic output
-      top_p: 0.5, // Further reduced for faster token sampling and better consistency
-      max_tokens: maxTokens, // Configurable to prevent truncation
+      temperature: 0.01,
+      top_p: 0.3,
+      max_tokens: maxTokens,
     };
 
     const response = await fetch(DEEPSEEK_API_URL, {

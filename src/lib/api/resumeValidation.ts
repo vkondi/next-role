@@ -1,16 +1,10 @@
-/**
- * Resume Validation Utilities
- * Ensures resume text meets minimum criteria for interpretation
- */
+/** Resume validation utilities */
 
-/**
- * Validates if resume text meets minimum criteria
- */
+/** Validates if resume text meets minimum criteria */
 export function validateResumeText(text: string): {
   isValid: boolean;
   error?: string;
 } {
-  // Check minimum length (at least 100 characters)
   if (!text || text.trim().length < 100) {
     return {
       isValid: false,
@@ -18,7 +12,6 @@ export function validateResumeText(text: string): {
     };
   }
 
-  // Check that it's not just whitespace/repeated characters
   const trimmed = text.trim();
   if (trimmed.split(/\s+/).length < 10) {
     return {

@@ -1,15 +1,10 @@
-/**
- * Rate Limiter Utility
- * Tracks API requests by IP address to enforce rate limits
- * Limits: 5 requests per day per IP
- */
+/** Rate limiter: 5 requests/day per IP */
 
 interface RateLimitRecord {
   count: number;
   resetTime: number;
 }
 
-// In-memory storage for rate limit tracking
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
 const RATE_LIMIT_CONFIG = {
@@ -17,23 +12,16 @@ const RATE_LIMIT_CONFIG = {
   WINDOW_SIZE_MS: 24 * 60 * 60 * 1000, // 24 hours
 };
 
-/**
- * Check if an IP is the configured local development IP (skip rate limiting)
- * Allows unlimited requests from the developer's local machine
- */
+/** Check if IP is local (skip rate limiting) */
 function isLocalIp(ip: string): boolean {
   if (!ip || ip === "unknown") return false;
 
-  // Get the configured local IP from environment variable
   const devLocalIp = process.env.DEV_LOCAL_IP;
-
-  // Always allow localhost on the current machine
   const localhostPatterns = ["127.0.0.1", "::1", "localhost"];
   if (localhostPatterns.includes(ip)) {
     return true;
   }
 
-  // Allow the configured development IP from .env.local
   if (devLocalIp && ip === devLocalIp) {
     return true;
   }
@@ -41,17 +29,11 @@ function isLocalIp(ip: string): boolean {
   return false;
 }
 
-/**
- * Check if a request from an IP should be rate limited
- * @param ip - IP address of the requester
- * @returns { allowed: boolean, remaining: number, resetTime: number }
- */
 export function checkRateLimit(ip: string): {
   allowed: boolean;
   remaining: number;
   resetTime: number;
 } {
-  // SKIP RATE LIMITING FOR LOCAL IPs
   if (isLocalIp(ip)) {
     return {
       allowed: true,
@@ -63,7 +45,6 @@ export function checkRateLimit(ip: string): {
   const now = Date.now();
   const record = rateLimitStore.get(ip);
 
-  // If no record exists or window has expired, reset
   if (!record || now > record.resetTime) {
     const newRecord: RateLimitRecord = {
       count: 1,
@@ -77,7 +58,6 @@ export function checkRateLimit(ip: string): {
     };
   }
 
-  // Window exists and hasn't expired
   const isAllowed = record.count < RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY;
   record.count++;
 
@@ -91,10 +71,7 @@ export function checkRateLimit(ip: string): {
   };
 }
 
-/**
- * Get the client IP from request headers
- * Handles proxied requests (X-Forwarded-For, CF-Connecting-IP, etc.)
- */
+/** Extract client IP from headers (handles proxies) */
 export function getClientIp(headers: Headers): string {
   const forwardedFor = headers.get("x-forwarded-for");
   if (forwardedFor) {
@@ -114,10 +91,7 @@ export function getClientIp(headers: Headers): string {
   return "unknown";
 }
 
-/**
- * Cleanup old entries from rate limit store (run periodically)
- * Removes entries older than 24 hours to prevent memory leak
- */
+/** Cleanup expired entries (prevent memory leak) */
 export function cleanupRateLimitStore(): void {
   const now = Date.now();
   const entriesToDelete: string[] = [];
@@ -131,26 +105,17 @@ export function cleanupRateLimitStore(): void {
   entriesToDelete.forEach((ip) => rateLimitStore.delete(ip));
 }
 
-// Run cleanup every hour
+// Cleanup every hour
 setInterval(() => {
   cleanupRateLimitStore();
 }, 60 * 60 * 1000);
 
-/**
- * Higher-order function to wrap route handlers with rate limiting
- * Only applies rate limit to real API calls with AI integration, not mock requests
- * @param handler - The actual route handler function
- * @param requiresAiIntegration - Whether this endpoint requires AI integration (default: true for wrapped endpoints)
- * @returns Wrapped handler that checks rate limit before executing (skip for mock=true or no AI integration)
- */
+/** Wrap handlers with rate limiting */
 export function withRateLimit(
   handler: (request: any) => Promise<any>,
   requiresAiIntegration: boolean = true
 ): (request: any) => Promise<any> {
   return async (request: any) => {
-    // Only apply rate limiting if:
-    // 1. Endpoint requires AI integration AND
-    // 2. Not in mock mode
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
     
     if (requiresAiIntegration && !useMock) {

@@ -1,7 +1,4 @@
-/**
- * Resume Interpreter Prompt Module
- * Converts resume text into structured JSON format
- */
+/** Resume interpreter prompt module */
 
 import { ResumeProfileSchema } from "../schemas";
 import type { ResumeProfile } from "../schemas";
@@ -16,17 +13,13 @@ Resume:
 ${resumeText}`;
 }
 
-/**
- * Parses and validates the AI response for resume interpretation
- * Optimized for speed with minimal cleanup
- */
+/** Parses and validates resume interpretation response */
 export async function parseResumeInterpreterResponse(
   responseText: string
 ): Promise<ResumeProfile> {
   try {
     let cleanedText = responseText.trim();
     
-    // Only remove code blocks if explicitly present (most common case)
     if (cleanedText.startsWith("```")) {
       const endIdx = cleanedText.lastIndexOf("```");
       if (endIdx > 3) {
@@ -49,13 +42,8 @@ export async function parseResumeInterpreterResponse(
   }
 }
 
-/**
- * Resume Interpreter function - combines prompt creation and response parsing
- */
 export async function interpretResume(resumeText: string): Promise<ResumeProfile> {
   const prompt = createResumeInterpreterPrompt(resumeText);
-  
-  // Call Deepseek API
   const response = await callDeepseekAPI(prompt);
   const profile = await parseResumeInterpreterResponse(response);
   

@@ -1,7 +1,4 @@
-/**
- * POST /api/roadmap/generate
- * Generates a month-by-month career transition roadmap
- */
+/** POST /api/roadmap/generate - Generates career transition roadmap */
 
 import { NextRequest, NextResponse } from "next/server";
 import { RoadmapGeneratorRequestSchema } from "@/lib/ai/schemas";
@@ -15,7 +12,6 @@ const handler = async (request: NextRequest) => {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
-    // Validate request
     const validatedData = RoadmapGeneratorRequestSchema.safeParse(body);
     if (!validatedData.success) {
       return NextResponse.json(

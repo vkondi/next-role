@@ -1,8 +1,4 @@
-/**
- * POST /api/career-paths/generate
- * Generates minimal career path options for carousel display
- * (Full details fetched separately when user selects a path)
- */
+/** POST /api/career-paths/generate - Generates minimal career path options */
 
 import { NextRequest, NextResponse } from "next/server";
 import { CareerPathGeneratorRequestSchema } from "@/lib/ai/schemas";
@@ -10,13 +6,13 @@ import { generateCareerPathsMinimal } from "@/lib/ai/prompts/careerPathGenerator
 import { generateMockCareerPathsMinimal } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
 import { responseCache } from "@/lib/api/cache";
+import crypto from "crypto";
 
 const handler = async (request: NextRequest) => {
   try {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
-    // Validate request
     const validatedData = CareerPathGeneratorRequestSchema.safeParse(body);
     if (!validatedData.success) {
       return NextResponse.json(
@@ -30,9 +26,12 @@ const handler = async (request: NextRequest) => {
 
     const { resumeProfile, numberOfPaths = 4 } = validatedData.data;
 
-    // Check cache first (only for real API calls, not mock)
+    // Check cache first (improved cache key for better hit rate)
     if (!useMock) {
-      const cacheKey = `paths_${numberOfPaths}_${resumeProfile.currentRole}`;
+      const cacheKey = crypto
+        .createHash("sha256")
+        .update(`${numberOfPaths}_${resumeProfile.currentRole}_${resumeProfile.yearsOfExperience}_${resumeProfile.techStack.slice(0, 3).join("_")}`)
+        .digest("hex");
       const cachedResult = responseCache.get(cacheKey);
       if (cachedResult) {
         return NextResponse.json({
@@ -51,9 +50,12 @@ const handler = async (request: NextRequest) => {
       // Call actual AI API with minimal prompt (MUCH FASTER)
       try {
         paths = await generateCareerPathsMinimal(resumeProfile, numberOfPaths);
-        // Cache the result for 1 hour
-        const cacheKey = `paths_${numberOfPaths}_${resumeProfile.currentRole}`;
-        responseCache.set(cacheKey, paths, 60 * 60 * 1000);
+        // Cache for 3 hours (higher TTL since tech stack is fairly stable)
+        const cacheKey = crypto
+          .createHash("sha256")
+          .update(`${numberOfPaths}_${resumeProfile.currentRole}_${resumeProfile.yearsOfExperience}_${resumeProfile.techStack.slice(0, 3).join("_")}`)
+          .digest("hex");
+        responseCache.set(cacheKey, paths, 3 * 60 * 60 * 1000);
       } catch (error) {
         return NextResponse.json(
           {

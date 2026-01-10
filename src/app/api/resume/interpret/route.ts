@@ -1,7 +1,4 @@
-/**
- * POST /api/resume/interpret
- * Interprets uploaded resume text and extracts structured profile
- */
+/** POST /api/resume/interpret - Interprets resume text to structured profile */
 
 import { NextRequest, NextResponse } from "next/server";
 import { ResumeInterpreterRequestSchema } from "@/lib/ai/schemas";
@@ -16,7 +13,6 @@ const handler = async (request: NextRequest) => {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
-    // Validate request
     const validatedData = ResumeInterpreterRequestSchema.safeParse(body);
     if (!validatedData.success) {
       return NextResponse.json(
@@ -33,20 +29,16 @@ const handler = async (request: NextRequest) => {
     let profile;
     
     if (useMock) {
-      // Use mock data
       profile = generateMockResumeProfile(resumeText);
     } else {
-      // Check cache first (avoid redundant API calls)
       const cacheKey = crypto.createHash("sha256").update(resumeText).digest("hex");
       const cachedProfile = responseCache.get(cacheKey);
       
       if (cachedProfile) {
         profile = cachedProfile;
       } else {
-        // Call actual AI API
         try {
           profile = await interpretResume(resumeText);
-          // Cache the result for 24 hours
           responseCache.set(cacheKey, profile, 24 * 60 * 60 * 1000);
         } catch (error) {
           return NextResponse.json(
@@ -76,4 +68,4 @@ const handler = async (request: NextRequest) => {
   }
 };
 
-export const POST = withRateLimit(handler); // Uses AI to interpret resume
+export const POST = withRateLimit(handler);

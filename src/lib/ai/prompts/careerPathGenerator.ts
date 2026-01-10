@@ -1,76 +1,69 @@
-/**
- * Career Path Generator Prompt Module
- * Suggests 4-6 potential career paths based on user profile
- */
+/** Career path generator prompt module */
 
 import { CareerPathSchema, CareerPathMinimalSchema } from "../schemas";
 import type { CareerPath, CareerPathMinimal, ResumeProfile } from "../schemas";
 import { z } from "zod";
 import { callDeepseekAPI } from "@/lib/api/deepseek";
 
-/**
- * Minimal prompt - Returns quick overview without detailed reasoning
- * This is MUCH faster since we don't ask for lengthy explanations
- * OPTIMIZED: Short JSON field names for output compression
- */
+/** Minimal prompt for quick path generation (~50% token reduction) */
 export function createCareerPathMinimalPrompt(
   resumeProfile: ResumeProfile,
   numberOfPaths: number = 4
 ): string {
-  return `Generate ${numberOfPaths} career paths for: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y), ${resumeProfile.techStack.join(", ")}.
+  const topTechs = resumeProfile.techStack.slice(0, 5).join(",");
+  return `You are a career advisor. Generate exactly ${numberOfPaths} career paths.
 
-Return ONLY valid JSON array, no text:
-[{"id":"p_1","name":"Role","desc":"1 line","mkt":85,"ind":90,"skl":["S1","S2","S3"]}]`;
+Profile: ${resumeProfile.currentRole}, ${resumeProfile.yearsOfExperience}yr, ${topTechs}
+
+RESPOND ONLY WITH VALID JSON ARRAY (no other text):
+[{"id":"p1","name":"Role","desc":"desc","mkt":85,"ind":90,"skl":["s1","s2"]}]`;
 }
 
-/**
- * Detailed prompt - For a selected path only
- * Fetched AFTER user selects from carousel
- * OPTIMIZED: Reduced prompt by 60% for faster inference
- */
+/** Detailed prompt for selected path */
 export function createCareerPathDetailsPrompt(
   resumeProfile: ResumeProfile,
   pathName: string
 ): string {
-  return `Analyze "${pathName}" for ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y).
-
-CRITICAL ENUM CONSTRAINTS:
-- effortLevel MUST be exactly one of: "Low", "Medium", "High"
-- rewardPotential MUST be exactly one of: "Low", "Medium", "High"
-
-Respond with ONLY valid JSON:
-{
-  "effortLevel": "High",
-  "rewardPotential": "High",
-  "reasoning": "1-2 sentences why this path is suitable",
-  "detailedDescription": "2-3 sentences about role, responsibilities and growth"
-}`;
+  return `Analyze career path "${pathName}" for ${resumeProfile.currentRole}.
+  
+RESPOND ONLY WITH VALID JSON (no other text):
+{"eff":"High","rew":"High","why":"reason","desc":"role info"}`;
 }
 
 /**
- * Parses minimal career paths response - FAST, with field name mapping
- * Handles both condensed and full field names
+ * Parses minimal career paths response - FAST, handles malformed responses
  */
 export async function parseCareerPathMinimalResponse(
   responseText: string
 ): Promise<CareerPathMinimal[]> {
   try {
     let cleanedText = responseText.trim();
-    // Remove markdown code blocks if present
-    if (cleanedText.startsWith("```json")) cleanedText = cleanedText.substring(7);
-    if (cleanedText.startsWith("```")) cleanedText = cleanedText.substring(3);
-    if (cleanedText.endsWith("```")) cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+    
+    // Remove markdown code blocks
+    if (cleanedText.startsWith("```")) {
+      const endIdx = cleanedText.lastIndexOf("```");
+      if (endIdx > 3) cleanedText = cleanedText.substring(cleanedText.indexOf("\n") + 1, endIdx);
+    }
     cleanedText = cleanedText.trim();
 
-    // Fast parse without Zod validation
+    // If response still has text before JSON, extract the JSON array
+    if (!cleanedText.startsWith("[")) {
+      const jsonStart = cleanedText.indexOf("[");
+      if (jsonStart !== -1) {
+        const jsonEnd = cleanedText.lastIndexOf("]");
+        if (jsonEnd !== -1) {
+          cleanedText = cleanedText.substring(jsonStart, jsonEnd + 1);
+        }
+      }
+    }
+
     const parsed = JSON.parse(cleanedText) as Array<Record<string, unknown>>;
     
-    // Quick sanity check - ensure it's an array with expected fields
     if (!Array.isArray(parsed) || parsed.length === 0) {
       throw new Error("Response is not a valid array");
     }
     
-    // Map condensed field names to full structure and validate with Zod
+    // Map condensed field names
     const mapped = parsed.map((item) => ({
       roleId: (item.id || item.roleId) as string,
       roleName: (item.name || item.roleName) as string,
@@ -80,7 +73,6 @@ export async function parseCareerPathMinimalResponse(
       requiredSkills: (item.skl || item.requiredSkills) as string[],
     }));
     
-    // Validate with schema
     return z.array(CareerPathMinimalSchema).parse(mapped);
   } catch (error) {
     throw new Error(
@@ -90,27 +82,50 @@ export async function parseCareerPathMinimalResponse(
 }
 
 /**
- * Parses detailed path info response
+ * Parses detailed path info response - handles malformed JSON and field name mapping
  */
 export async function parseCareerPathDetailsResponse(responseText: string) {
   try {
     let cleanedText = responseText.trim();
-    if (cleanedText.startsWith("```json")) cleanedText = cleanedText.substring(7);
-    if (cleanedText.startsWith("```")) cleanedText = cleanedText.substring(3);
-    if (cleanedText.endsWith("```")) cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+    
+    // Remove markdown code blocks
+    if (cleanedText.startsWith("```")) {
+      const endIdx = cleanedText.lastIndexOf("```");
+      if (endIdx > 3) cleanedText = cleanedText.substring(cleanedText.indexOf("\n") + 1, endIdx);
+    }
     cleanedText = cleanedText.trim();
+
+    // Extract JSON object if there's text before it
+    if (!cleanedText.startsWith("{")) {
+      const jsonStart = cleanedText.indexOf("{");
+      if (jsonStart !== -1) {
+        const jsonEnd = cleanedText.lastIndexOf("}");
+        if (jsonEnd !== -1) {
+          cleanedText = cleanedText.substring(jsonStart, jsonEnd + 1);
+        }
+      }
+    }
 
     if (!cleanedText || cleanedText === "{}") {
       throw new Error("Empty or invalid JSON response");
     }
 
-    const parsed = JSON.parse(cleanedText);
+    const parsed = JSON.parse(cleanedText) as Record<string, unknown>;
+    
+    // Map abbreviated field names to full names
+    const mapped = {
+      effortLevel: (parsed.eff || parsed.effortLevel) as string,
+      rewardPotential: (parsed.rew || parsed.rewardPotential) as string,
+      reasoning: (parsed.why || parsed.reasoning) as string,
+      detailedDescription: (parsed.desc || parsed.detailedDescription) as string,
+    };
+    
     return z.object({
       effortLevel: z.enum(["Low", "Medium", "High"]),
       rewardPotential: z.enum(["Low", "Medium", "High"]),
       reasoning: z.string(),
       detailedDescription: z.string(),
-    }).parse(parsed);
+    }).parse(mapped);
   } catch (error) {
     throw new Error(
       `Failed to parse path details: ${error instanceof Error ? error.message : String(error)}`

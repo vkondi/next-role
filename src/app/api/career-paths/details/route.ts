@@ -1,8 +1,4 @@
-/**
- * POST /api/career-paths/details
- * Generates detailed information for a specific career path
- * Called AFTER user selects a path from the carousel
- */
+/** POST /api/career-paths/details - Generates detailed info for selected path */
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -11,7 +7,6 @@ import { generateMockCareerPathDetails } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
 import { responseCache } from "@/lib/api/cache";
 
-// Request schema for details
 const CareerPathDetailsRequestSchema = z.object({
   resumeProfile: z.object({
     currentRole: z.string(),
@@ -31,7 +26,6 @@ const handler = async (request: NextRequest) => {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
-    // Validate request
     const validatedData = CareerPathDetailsRequestSchema.safeParse(body);
     if (!validatedData.success) {
       return NextResponse.json(
@@ -45,7 +39,6 @@ const handler = async (request: NextRequest) => {
 
     const { resumeProfile, pathBasic } = validatedData.data;
 
-    // OPTIMIZATION: Check cache before AI call
     if (!useMock) {
       const cacheKey = `details_${pathBasic.roleId}_${resumeProfile.currentRole}`;
       const cached = responseCache.get(cacheKey);
@@ -57,14 +50,10 @@ const handler = async (request: NextRequest) => {
     let details;
 
     if (useMock) {
-      // Use mock data
       details = generateMockCareerPathDetails(resumeProfile, pathBasic);
     } else {
-      // Call actual AI API for detailed information
       try {
         details = await generateCareerPathDetails(resumeProfile, pathBasic);
-        
-        // OPTIMIZATION: Cache for 7 days
         const cacheKey = `details_${pathBasic.roleId}_${resumeProfile.currentRole}`;
         responseCache.set(cacheKey, details, 7 * 24 * 60 * 60 * 1000);
       } catch (error) {
