@@ -25,9 +25,9 @@ export function createCareerPathDetailsPrompt(
   pathName: string
 ): string {
   return `Analyze career path "${pathName}" for ${resumeProfile.currentRole}.
-  
-RESPOND ONLY WITH VALID JSON (no other text):
-{"eff":"High","rew":"High","why":"reason","desc":"role info"}`;
+
+Return ONLY this JSON with EXACT enum values:
+{"effortLevel":"Low|Medium|High","rewardPotential":"Low|Medium|High","why":"reason","desc":"info"}`;
 }
 
 /**
@@ -112,10 +112,18 @@ export async function parseCareerPathDetailsResponse(responseText: string) {
 
     const parsed = JSON.parse(cleanedText) as Record<string, unknown>;
     
+    // Normalize enum values: "Very High" -> "High", "Very Low" -> "Low"
+    const normalizeEnum = (value: unknown): string => {
+      if (typeof value !== "string") return value as string;
+      if (value === "Very High") return "High";
+      if (value === "Very Low") return "Low";
+      return value;
+    };
+    
     // Map abbreviated field names to full names
     const mapped = {
-      effortLevel: (parsed.eff || parsed.effortLevel) as string,
-      rewardPotential: (parsed.rew || parsed.rewardPotential) as string,
+      effortLevel: normalizeEnum(parsed.eff || parsed.effortLevel),
+      rewardPotential: normalizeEnum(parsed.rew || parsed.rewardPotential),
       reasoning: (parsed.why || parsed.reasoning) as string,
       detailedDescription: (parsed.desc || parsed.detailedDescription) as string,
     };

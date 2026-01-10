@@ -26,9 +26,13 @@ const handler = async (request: NextRequest) => {
     const { resumeProfile, careerPath, skillGapAnalysis, timelineMonths = 6 } =
       validatedData.data;
 
-    // OPTIMIZATION: Check cache before AI call
     if (!useMock) {
-      const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${resumeProfile.currentRole}`;
+      const skillKey = skillGapAnalysis.skillGaps
+        .filter((sg) => sg.importance === "High")
+        .slice(0, 3)
+        .map((sg) => sg.skillName)
+        .join("_");
+      const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${skillKey}`;
       const cached = responseCache.get(cacheKey);
       if (cached) {
         return NextResponse.json({ success: true, data: cached });
@@ -45,8 +49,12 @@ const handler = async (request: NextRequest) => {
       try {
         roadmap = await generateRoadmap(resumeProfile, careerPath, skillGapAnalysis, timelineMonths);
         
-        // OPTIMIZATION: Cache for 30 days
-        const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${resumeProfile.currentRole}`;
+        const skillKey = skillGapAnalysis.skillGaps
+          .filter((sg) => sg.importance === "High")
+          .slice(0, 3)
+          .map((sg) => sg.skillName)
+          .join("_");
+        const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${skillKey}`;
         responseCache.set(cacheKey, roadmap, 30 * 24 * 60 * 60 * 1000);
       } catch (error) {
         return NextResponse.json(

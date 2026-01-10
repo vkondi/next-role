@@ -18,23 +18,18 @@ export function createRoadmapGeneratorPrompt(
   skillGapAnalysis: SkillGapAnalysis,
   timelineMonths: number = 6
 ): string {
-  // OPTIMIZATION: Only top 3 critical skills (reduced from 4)
   const criticalSkills = skillGapAnalysis.skillGaps
     .filter((sg) => sg.importance === "High")
     .slice(0, 3)
     .map((sg) => sg.skillName)
     .join(", ");
 
-  // OPTIMIZATION: Max 3 phases (reduced from 4)
-  const phaseCount = Math.min(3, Math.ceil(timelineMonths / 2));
-
-  return `Create ${phaseCount}-phase ${timelineMonths}-month roadmap: ${careerPath.roleName}
-
-Profile: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y)
+  return `Create 2-phase ${timelineMonths}-month roadmap: ${careerPath.roleName}
+Current: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y)
 Skills: ${criticalSkills}
 Severity: ${skillGapAnalysis.overallGapSeverity}
 
-CRITICAL: Return ONLY valid, complete JSON (no markdown, no truncation, no extra text):
+Return ONLY valid JSON:
 {
   "careerPathId": "${careerPath.roleId}",
   "careerPathName": "${careerPath.roleName}",
@@ -42,34 +37,25 @@ CRITICAL: Return ONLY valid, complete JSON (no markdown, no truncation, no extra
   "phases": [
     {
       "phaseNumber": 1,
-      "duration": "Month 1-2",
-      "skillsFocus": ["Skill1", "Skill2"],
-      "learningDirection": "Focus on fundamentals",
-      "projectIdeas": ["Small project"],
-      "milestones": ["Complete online course"],
-      "actionItems": ["Start learning"]
+      "duration": "Month 1-${Math.ceil(timelineMonths / 2)}",
+      "skillsFocus": ["skill1", "skill2"],
+      "learningDirection": "Build foundation",
+      "projectIdeas": ["1-2 projects"],
+      "milestones": ["Course + basic project"],
+      "actionItems": ["Learn and build"]
     },
     {
       "phaseNumber": 2,
-      "duration": "Month 3-4",
-      "skillsFocus": ["Skill2", "Skill3"],
-      "learningDirection": "Build practical skills",
-      "projectIdeas": ["Medium project"],
-      "milestones": ["Finish project"],
-      "actionItems": ["Build and deploy"]
-    },
-    {
-      "phaseNumber": 3,
-      "duration": "Month 5-6",
-      "skillsFocus": ["Skill3"],
-      "learningDirection": "Refine expertise",
-      "projectIdeas": ["Professional project"],
-      "milestones": ["Ready for role"],
-      "actionItems": ["Polish portfolio"]
+      "duration": "Month ${Math.ceil(timelineMonths / 2) + 1}-${timelineMonths}",
+      "skillsFocus": ["skill2", "skill3"],
+      "learningDirection": "Gain expertise",
+      "projectIdeas": ["Advanced project"],
+      "milestones": ["Portfolio ready"],
+      "actionItems": ["Refine and prepare"]
     }
   ],
-  "successMetrics": ["Completed projects", "Skill proficiency"],
-  "riskFactors": ["Time constraints"]
+  "successMetrics": ["Portfolio"],
+  "riskFactors": ["Time"]
 }`;
 }
 
@@ -148,8 +134,7 @@ export async function generateRoadmap(
     timelineMonths
   );
 
-  // Call Deepseek API with higher max_tokens for roadmap (more complex output)
-  const response = await callDeepseekAPI(prompt, 2000);
+  const response = await callDeepseekAPI(prompt, 1200);
   const roadmap = await parseRoadmapGeneratorResponse(response);
 
   return roadmap;
