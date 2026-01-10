@@ -1,7 +1,4 @@
-/**
- * Skill Gap Analyzer Prompt Module
- * Analyzes gaps between current skills and target role requirements
- */
+/** Skill gap analyzer prompt module */
 
 import { SkillGapAnalysisSchema } from "../schemas";
 import type {
@@ -11,110 +8,86 @@ import type {
 } from "../schemas";
 import { callDeepseekAPI } from "@/lib/api/deepseek";
 
+/** Create skill gap analysis prompt */
 export function createSkillGapAnalyzerPrompt(
   resumeProfile: ResumeProfile,
   careerPath: CareerPath
 ): string {
-  // OPTIMIZATION: Only analyze top 6 most important skills
   const topSkills = careerPath.requiredSkills.slice(0, 6);
 
-  return `Analyze skill gaps for: ${careerPath.roleName}
+  return `You are a career development expert. Analyze the skill gaps between a professional's current state and their target role.
 
-Profile: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y)
-Current: ${resumeProfile.techStack.join(", ")}
-Target: ${topSkills.join(", ")}
+Current Role: ${resumeProfile.currentRole}
+Years of Experience: ${resumeProfile.yearsOfExperience}
+Current Tech Stack: ${resumeProfile.techStack.join(", ")}
 
-CRITICAL ENUM CONSTRAINTS:
-- currentLevel MUST be one of: "None", "Beginner", "Intermediate", "Advanced", "Expert"
-- requiredLevel MUST be one of: "None", "Beginner", "Intermediate", "Advanced", "Expert"
-- importance MUST be one of: "Low", "Medium", "High"
-- overallGapSeverity MUST be one of: "Low", "Medium", "High" (NEVER "None")
+Target Role: ${careerPath.roleName}
+Required Skills: ${topSkills.join(", ")}
 
-Respond with ONLY valid JSON:
+For each required skill, determine:
+1. The professional's current level (None, Beginner, Intermediate, Advanced, Expert)
+2. The required level for the target role
+3. Importance of this skill (Low, Medium, High)
+4. Estimated time to close the gap
+5. Overall gap severity (Low, Medium, High)
+
+Respond with ONLY valid JSON matching this schema:
 {
-  "careerPathId": "${careerPath.roleId}",
-  "careerPathName": "${careerPath.roleName}",
+  "careerPathId": "string",
+  "careerPathName": "string",
   "skillGaps": [
-    {"skillName": "skill1", "currentLevel": "Beginner", "requiredLevel": "Advanced", "importance": "High"},
-    {"skillName": "skill2", "currentLevel": "None", "requiredLevel": "Intermediate", "importance": "Medium"}
+    {
+      "skillName": "string",
+      "currentLevel": "None|Beginner|Intermediate|Advanced|Expert",
+      "requiredLevel": "None|Beginner|Intermediate|Advanced|Expert",
+      "importance": "Low|Medium|High"
+    }
   ],
-  "overallGapSeverity": "High",
-  "estimatedTimeToClose": "6-9 months",
-  "summary": "Brief analysis of skill gaps and effort needed"
+  "overallGapSeverity": "Low|Medium|High",
+  "estimatedTimeToClose": "string",
+  "summary": "string"
 }`;
 }
 
-/**
- * Parses and validates the AI response for skill gap analysis
- * Includes JSON repair for truncated responses
- */
+/** Parses skill gap analysis response */
 export async function parseSkillGapAnalyzerResponse(
   responseText: string
 ): Promise<SkillGapAnalysis> {
   try {
     let cleanedText = responseText.trim();
-    if (cleanedText.startsWith("```json")) {
-      cleanedText = cleanedText.substring(7);
-    }
+    
+    // Remove markdown code blocks
     if (cleanedText.startsWith("```")) {
-      cleanedText = cleanedText.substring(3);
+      cleanedText = cleanedText.replace(/^```[^\n]*\n?/, "").replace(/\n?```$/, "");
     }
-    if (cleanedText.endsWith("```")) {
-      cleanedText = cleanedText.substring(0, cleanedText.length - 3);
-    }
-    cleanedText = cleanedText.trim();
-
-    if (!cleanedText || cleanedText === "{}") {
-      throw new Error("Empty or invalid JSON response");
-    }
-
-    // Try to parse as-is first
-    try {
-      const parsed = JSON.parse(cleanedText);
-      const validated = SkillGapAnalysisSchema.parse(parsed);
-      return validated;
-    } catch (parseError) {
-      // If parsing fails, try to repair truncated JSON
-      if (parseError instanceof SyntaxError && cleanedText.includes("{")) {
-        // Likely truncated - try to fix common truncation patterns
-        let repaired = cleanedText;
-        
-        // Count unclosed brackets
-        const openBraces = (repaired.match(/{/g) || []).length;
-        const closeBraces = (repaired.match(/}/g) || []).length;
-        const openBrackets = (repaired.match(/\[/g) || []).length;
-        const closeBrackets = (repaired.match(/]/g) || []).length;
-        
-        // Add closing brackets if truncated
-        repaired += "]".repeat(Math.max(0, openBrackets - closeBrackets));
-        repaired += "}".repeat(Math.max(0, openBraces - closeBraces));
-        
-        // Try parsing the repaired version
-        const parsed = JSON.parse(repaired);
-        const validated = SkillGapAnalysisSchema.parse(parsed);
-        return validated;
+    
+    // Extract JSON if wrapped in text
+    if (!cleanedText.startsWith("{")) {
+      const jsonStart = cleanedText.indexOf("{");
+      if (jsonStart !== -1) {
+        const jsonEnd = cleanedText.lastIndexOf("}");
+        if (jsonEnd !== -1) {
+          cleanedText = cleanedText.substring(jsonStart, jsonEnd + 1);
+        }
       }
-      throw parseError;
     }
+    
+    const parsed = JSON.parse(cleanedText);
+    const validated = SkillGapAnalysisSchema.parse(parsed);
+    return validated;
   } catch (error) {
     throw new Error(
-      `Failed to parse skill gap analyzer response: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to parse skill gap response: ${error instanceof Error ? error.message : "Invalid JSON"}`
     );
   }
 }
 
-/**
- * Skill Gap Analyzer function
- */
 export async function analyzeSkillGaps(
   resumeProfile: ResumeProfile,
   careerPath: CareerPath
 ): Promise<SkillGapAnalysis> {
   const prompt = createSkillGapAnalyzerPrompt(resumeProfile, careerPath);
-
-  // Call Deepseek API with higher max_tokens for complex analysis
-  const response = await callDeepseekAPI(prompt, 1500);
+  const response = await callDeepseekAPI(prompt, 1100);
   const analysis = await parseSkillGapAnalyzerResponse(response);
-
   return analysis;
 }
