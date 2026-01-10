@@ -54,7 +54,7 @@ export async function callDeepseekAPI(prompt: string, maxTokens: number = 1000):
         },
       ],
       temperature: 0.01, // Ultra-low for fastest, most deterministic output
-      top_p: 0.8, // Further reduced for faster token sampling
+      top_p: 0.5, // Further reduced for faster token sampling and better consistency
       max_tokens: maxTokens, // Configurable to prevent truncation
     };
 

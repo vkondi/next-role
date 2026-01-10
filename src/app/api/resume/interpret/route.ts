@@ -8,6 +8,8 @@ import { ResumeInterpreterRequestSchema } from "@/lib/ai/schemas";
 import { interpretResume } from "@/lib/ai/prompts/resumeInterpreter";
 import { generateMockResumeProfile } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
+import { responseCache } from "@/lib/api/cache";
+import crypto from "crypto";
 
 const handler = async (request: NextRequest) => {
   try {
@@ -34,17 +36,27 @@ const handler = async (request: NextRequest) => {
       // Use mock data
       profile = generateMockResumeProfile(resumeText);
     } else {
-      // Call actual AI API
-      try {
-        profile = await interpretResume(resumeText);
-      } catch (error) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Failed to interpret resume: ${error instanceof Error ? error.message : String(error)}`,
-          },
-          { status: 500 }
-        );
+      // Check cache first (avoid redundant API calls)
+      const cacheKey = crypto.createHash("sha256").update(resumeText).digest("hex");
+      const cachedProfile = responseCache.get(cacheKey);
+      
+      if (cachedProfile) {
+        profile = cachedProfile;
+      } else {
+        // Call actual AI API
+        try {
+          profile = await interpretResume(resumeText);
+          // Cache the result for 24 hours
+          responseCache.set(cacheKey, profile, 24 * 60 * 60 * 1000);
+        } catch (error) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Failed to interpret resume: ${error instanceof Error ? error.message : String(error)}`,
+            },
+            { status: 500 }
+          );
+        }
       }
     }
 
