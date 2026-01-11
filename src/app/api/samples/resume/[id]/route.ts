@@ -9,12 +9,16 @@ const SAMPLE_RESUMES = {
   "senior-healthcare": "senior-healthcare.txt",
 };
 
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteContext
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Validate the requested resume ID
     if (!SAMPLE_RESUMES[id as keyof typeof SAMPLE_RESUMES]) {
