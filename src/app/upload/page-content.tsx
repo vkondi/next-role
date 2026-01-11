@@ -2,16 +2,22 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Upload, AlertCircle } from "lucide-react";
+import { ArrowRight, Upload, AlertCircle, Sparkles, ChevronDown } from "lucide-react";
 import { ApiModeToggle } from "@/components";
-import { useApiMode } from "@/lib/context/ApiModeContext";
+import { useApiMode, useAIProvider } from "@/lib/context/SettingsContext";
 import { useResume } from "@/lib/context/ResumeContext";
 import { validateResumeText } from "@/lib/api/resumeValidation";
 import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
+import { SAMPLE_RESUMES } from "@/data/sampleResumes";
 import type { ResumeProfile } from "@/lib/types";
+
+// Client-side cache for sample resumes to avoid repeated API calls
+const sampleResumeCache = new Map<string, { text: string; timestamp: number }>();
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export default function UploadPageContent() {
   const { mode } = useApiMode();
+  const { provider } = useAIProvider();
   const { setResumeProfile } = useResume();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extractedTextRef = useRef<HTMLDivElement>(null);
@@ -23,13 +29,18 @@ export default function UploadPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [uploadMethod, setUploadMethod] = useState<"text" | "file">("file");
   const [fileError, setFileError] = useState<string | null>(null);
+  const [loadingSampleId, setLoadingSampleId] = useState<string | null>(null);
+  const [showSamples, setShowSamples] = useState(false);
 
   // Auto-scroll to extracted text when file is successfully parsed
   useEffect(() => {
     if (resumeText && uploadMethod === "file" && extractedTextRef.current) {
       // Use setTimeout to ensure DOM is updated before scrolling
       setTimeout(() => {
-        extractedTextRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        extractedTextRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       }, 100);
     }
   }, [resumeText, uploadMethod]);
@@ -38,7 +49,10 @@ export default function UploadPageContent() {
   useEffect(() => {
     if (error && errorRef.current) {
       setTimeout(() => {
-        errorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        errorRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       }, 100);
     }
   }, [error]);
@@ -47,7 +61,10 @@ export default function UploadPageContent() {
   useEffect(() => {
     if (fileError && fileErrorRef.current) {
       setTimeout(() => {
-        fileErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        fileErrorRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       }, 100);
     }
   }, [fileError]);
@@ -74,17 +91,17 @@ export default function UploadPageContent() {
       const profile = await apiRequest<ResumeProfile>(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText }),
+        body: JSON.stringify({ resumeText, aiProvider: provider }),
       });
       setProfile(profile);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      console.error("Resume analysis error:", errorMessage, err);
+      console.error("[Upload] Resume analysis failed:", errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [mode, resumeText]);
+  }, [mode, resumeText, provider]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -95,14 +112,11 @@ export default function UploadPageContent() {
     setError(null);
 
     // Validate file type (TXT and PDF supported)
-    const validTypes = [
-      "text/plain",
-      "application/pdf",
-    ];
-    
+    const validTypes = ["text/plain", "application/pdf"];
+
     const isTxtFile = file.name.endsWith(".txt");
     const isPdfFile = file.name.endsWith(".pdf");
-    
+
     if (!validTypes.includes(file.type) && !isTxtFile && !isPdfFile) {
       setFileError("Please upload a TXT or PDF file");
       return;
@@ -111,7 +125,9 @@ export default function UploadPageContent() {
     // Validate file size (max 10MB)
     const maxFileSize = 10 * 1024 * 1024;
     if (file.size > maxFileSize) {
-      setFileError("File size exceeds 10MB limit. Please choose a smaller file.");
+      setFileError(
+        "File size exceeds 10MB limit. Please choose a smaller file."
+      );
       return;
     }
 
@@ -138,12 +154,73 @@ export default function UploadPageContent() {
       setResumeText(data.text);
       setLoading(false);
     } catch (err) {
-      setFileError(
-        err instanceof Error ? err.message : "Failed to read file"
-      );
+      setFileError(err instanceof Error ? err.message : "Failed to read file");
       setLoading(false);
     }
   };
+
+  const handleLoadSampleResume = useCallback(
+    async (sampleId: string) => {
+      const sample = SAMPLE_RESUMES.find((r) => r.id === sampleId);
+      if (!sample) return;
+
+      setLoadingSampleId(sampleId);
+      setError(null);
+      setFileError(null);
+
+      try {
+        let text: string;
+
+        // Check if we have a valid cached version
+        const cached = sampleResumeCache.get(sampleId);
+        const now = Date.now();
+        if (cached && now - cached.timestamp < CACHE_DURATION_MS) {
+          text = cached.text;
+        } else {
+          // Fetch the sample resume from the API endpoint
+          const response = await fetch(`/api/samples/resume/${sampleId}`);
+
+          if (!response.ok) {
+            throw new Error("Failed to load sample resume");
+          }
+
+          const data = await response.json();
+          text = data.text;
+
+          // Cache the result
+          sampleResumeCache.set(sampleId, { text, timestamp: now });
+        }
+
+        // Validate resume text
+        const validation = validateResumeText(text);
+        if (!validation.isValid) {
+          setError(validation.error || "Invalid resume content");
+          setLoadingSampleId(null);
+          return;
+        }
+
+        setResumeText(text);
+
+        // Auto-scroll to extracted text
+        setTimeout(() => {
+          extractedTextRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 100);
+
+        // Collapse the accordion after successful load
+        setShowSamples(false);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load sample resume"
+        );
+      } finally {
+        setLoadingSampleId(null);
+      }
+    },
+    []
+  );
 
   if (profile) {
     return (
@@ -152,7 +229,10 @@ export default function UploadPageContent() {
         {/* Navigation */}
         <nav className="bg-white border-b border-slate-200">
           <div className="container flex items-center justify-between h-14 sm:h-16 md:h-20">
-            <Link href="/" className="text-base sm:text-lg md:text-2xl font-bold text-emerald-600 flex-shrink-0">
+            <Link
+              href="/"
+              className="text-base sm:text-lg md:text-2xl font-bold text-emerald-600 flex-shrink-0"
+            >
               NextRole
             </Link>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -169,7 +249,9 @@ export default function UploadPageContent() {
             {/* Header */}
             <div className="space-y-1 sm:space-y-2 px-2 sm:px-0">
               <h1 className="heading-1">
-                {profile.name ? `${profile.name}, Your Career Profile` : "Your Career Profile"}
+                {profile.name
+                  ? `${profile.name}, Your Career Profile`
+                  : "Your Career Profile"}
               </h1>
               <p className="text-subtitle text-slate-600 text-sm sm:text-base">
                 Here&apos;s what we extracted from your resume
@@ -184,7 +266,9 @@ export default function UploadPageContent() {
                   <p className="text-small font-semibold text-slate-600 text-xs sm:text-sm">
                     CURRENT ROLE
                   </p>
-                  <p className="heading-3 text-lg sm:text-2xl">{profile.currentRole}</p>
+                  <p className="heading-3 text-lg sm:text-2xl">
+                    {profile.currentRole}
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-small font-semibold text-slate-600 text-xs sm:text-sm">
@@ -198,7 +282,9 @@ export default function UploadPageContent() {
                   <p className="text-small font-semibold text-slate-600 text-xs sm:text-sm">
                     INDUSTRY
                   </p>
-                  <p className="heading-3 text-lg sm:text-2xl">{profile.industryBackground}</p>
+                  <p className="heading-3 text-lg sm:text-2xl">
+                    {profile.industryBackground}
+                  </p>
                 </div>
               </div>
 
@@ -248,7 +334,9 @@ export default function UploadPageContent() {
                         key={edu}
                         className="text-xs sm:text-sm text-slate-700 flex items-start gap-2"
                       >
-                        <span className="text-emerald-600 mt-0.5 flex-shrink-0">•</span>
+                        <span className="text-emerald-600 mt-0.5 flex-shrink-0">
+                          •
+                        </span>
                         {edu}
                       </li>
                     ))}
@@ -267,7 +355,9 @@ export default function UploadPageContent() {
                         key={cert}
                         className="text-xs sm:text-sm text-slate-700 flex items-start gap-2"
                       >
-                        <span className="text-emerald-600 mt-0.5 flex-shrink-0">•</span>
+                        <span className="text-emerald-600 mt-0.5 flex-shrink-0">
+                          •
+                        </span>
                         {cert}
                       </li>
                     ))}
@@ -325,7 +415,10 @@ export default function UploadPageContent() {
       {/* Navigation */}
       <nav className="bg-white border-b border-slate-200">
         <div className="container flex items-center justify-between h-14 sm:h-16 md:h-20">
-          <Link href="/" className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-600">
+          <Link
+            href="/"
+            className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-600"
+          >
             NextRole
           </Link>
           <span className="text-xs sm:text-sm font-semibold text-slate-600 flex-shrink-0">
@@ -340,8 +433,8 @@ export default function UploadPageContent() {
           <div className="space-y-1 sm:space-y-2">
             <h1 className="heading-1">Upload Your Resume</h1>
             <p className="text-subtitle text-slate-600 text-sm sm:text-base">
-              Share your career history so we can analyze your profile and suggest
-              strategic next moves.
+              Share your career history so we can analyze your profile and
+              suggest strategic next moves.
             </p>
           </div>
 
@@ -371,10 +464,15 @@ export default function UploadPageContent() {
 
           {/* Error Message */}
           {error && (
-            <div ref={errorRef} className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3">
+            <div
+              ref={errorRef}
+              className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3"
+            >
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-slate-900 text-sm sm:text-base">Error</p>
+                <p className="font-semibold text-slate-900 text-sm sm:text-base">
+                  Error
+                </p>
                 <p className="text-xs sm:text-sm text-slate-600">{error}</p>
               </div>
             </div>
@@ -382,10 +480,15 @@ export default function UploadPageContent() {
 
           {/* File Error Message */}
           {fileError && (
-            <div ref={fileErrorRef} className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3">
+            <div
+              ref={fileErrorRef}
+              className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3"
+            >
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-slate-900 text-sm sm:text-base">File Error</p>
+                <p className="font-semibold text-slate-900 text-sm sm:text-base">
+                  File Error
+                </p>
                 <p className="text-xs sm:text-sm text-slate-600">{fileError}</p>
               </div>
             </div>
@@ -397,12 +500,79 @@ export default function UploadPageContent() {
               <div className="flex items-center justify-center gap-3 sm:gap-4 flex-col sm:flex-row">
                 <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 animate-pulse flex-shrink-0" />
                 <div className="space-y-1 sm:space-y-2 text-center sm:text-left">
-                  <p className="text-base sm:text-lg font-semibold text-slate-900">Analyzing your resume...</p>
-                  <p className="text-xs sm:text-sm text-slate-600">Extracting profile information and skills</p>
+                  <p className="text-base sm:text-lg font-semibold text-slate-900">
+                    Analyzing your resume...
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-600">
+                    Extracting profile information and skills
+                  </p>
                 </div>
               </div>
             </div>
           )}
+
+          {/* Sample Resumes Section - Collapsed by default, available for both tabs */}
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setShowSamples(!showSamples)}
+              className="w-full px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 hover:bg-slate-50 transition-colors"
+            >
+              <div className="flex items-start sm:items-center gap-2 sm:gap-3 text-left flex-1 min-w-0">
+                <Sparkles className="w-5 h-5 sm:w-5 sm:h-5 text-amber-500 flex-shrink-0 mt-0.5 sm:mt-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-900 text-sm sm:text-base leading-tight">
+                    Try Sample Resumes
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-600 mt-1 sm:mt-0.5">
+                    Don&apos;t have a resume handy? Start with a sample.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-semibold whitespace-nowrap">
+                  New
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 sm:w-5 sm:h-5 text-slate-600 transition-transform flex-shrink-0 ${
+                    showSamples ? "transform rotate-180" : ""
+                  }`}
+                />
+              </div>
+            </button>
+
+            {/* Collapsible Content */}
+            {showSamples && (
+              <div className="border-t border-slate-200 px-4 sm:px-6 py-4 sm:py-5 bg-slate-50 space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  {SAMPLE_RESUMES.map((sample) => (
+                    <button
+                      key={sample.id}
+                      onClick={() => handleLoadSampleResume(sample.id)}
+                      disabled={loading || loadingSampleId !== null}
+                      className="p-3 sm:p-4 border border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed text-left group bg-white"
+                    >
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <span className="text-xl sm:text-2xl flex-shrink-0">
+                          {sample.icon}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-600 transition-colors leading-snug">
+                            {sample.title}
+                          </p>
+                          <p className="text-xs text-slate-600 mt-0.5">
+                            {sample.subtitle}
+                          </p>
+                        </div>
+                        {loadingSampleId === sample.id && (
+                          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-600 animate-pulse flex-shrink-0 mt-1" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Input Section - Only show when not loading */}
           {!loading && (
@@ -410,7 +580,9 @@ export default function UploadPageContent() {
               {uploadMethod === "text" ? (
                 <div className="card-elevated space-y-4">
                   <label className="block space-y-2">
-                    <p className="font-semibold text-slate-900 text-sm sm:text-base">Resume Text</p>
+                    <p className="font-semibold text-slate-900 text-sm sm:text-base">
+                      Resume Text
+                    </p>
                     <p className="text-small text-slate-600 text-xs sm:text-sm">
                       Paste your resume content (plain text)
                     </p>
@@ -436,13 +608,8 @@ export default function UploadPageContent() {
               ) : (
                 <div className="space-y-4">
                   <div className="card-elevated">
-                    <label 
-                      htmlFor="file-input"
-                      className="block"
-                    >
-                      <div 
-                        className="border-2 border-dashed border-slate-300 rounded-lg p-6 sm:p-8 md:p-12 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-colors"
-                      >
+                    <label htmlFor="file-input" className="block">
+                      <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 sm:p-8 md:p-12 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-colors">
                         <Upload className="w-8 sm:w-12 h-8 sm:h-12 text-slate-400 mx-auto mb-2 sm:mb-3" />
                         <p className="font-semibold text-slate-900 text-sm sm:text-base">
                           Choose a file to upload
@@ -465,15 +632,22 @@ export default function UploadPageContent() {
 
                   {/* Extracted Text Preview */}
                   {resumeText && (
-                    <div ref={extractedTextRef} className="card-elevated space-y-4">
+                    <div
+                      ref={extractedTextRef}
+                      className="card-elevated space-y-4"
+                    >
                       <div className="space-y-2">
-                        <p className="font-semibold text-slate-900 text-sm sm:text-base">Extracted Resume Text</p>
+                        <p className="font-semibold text-slate-900 text-sm sm:text-base">
+                          Extracted Resume Text
+                        </p>
                         <p className="text-small text-slate-600 text-xs sm:text-sm">
                           Review the extracted text before analyzing
                         </p>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3 sm:p-4 max-h-48 sm:max-h-64 overflow-y-auto border border-slate-200">
-                        <p className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap">{resumeText}</p>
+                        <p className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap">
+                          {resumeText}
+                        </p>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
                         <button
@@ -504,24 +678,34 @@ export default function UploadPageContent() {
             </>
           )}
 
-          {/* Sample Resume Info */}
+          {/* Tips Section */}
           <div className="bg-slate-100 rounded-lg p-4 sm:p-6 space-y-3">
-            <p className="font-semibold text-slate-900 text-sm sm:text-base">💡 Tips for Best Results</p>
+            <p className="font-semibold text-slate-900 text-sm sm:text-base">
+              💡 Tips for Best Results
+            </p>
             <ul className="space-y-2">
               <li className="text-xs sm:text-sm text-slate-700 flex items-start gap-2">
-                <span className="text-emerald-600 font-bold flex-shrink-0">•</span>
+                <span className="text-emerald-600 font-bold flex-shrink-0">
+                  •
+                </span>
                 Include your current role and years of experience
               </li>
               <li className="text-xs sm:text-sm text-slate-700 flex items-start gap-2">
-                <span className="text-emerald-600 font-bold flex-shrink-0">•</span>
+                <span className="text-emerald-600 font-bold flex-shrink-0">
+                  •
+                </span>
                 List the technologies and tools you&apos;ve worked with
               </li>
               <li className="text-xs sm:text-sm text-slate-700 flex items-start gap-2">
-                <span className="text-emerald-600 font-bold flex-shrink-0">•</span>
+                <span className="text-emerald-600 font-bold flex-shrink-0">
+                  •
+                </span>
                 Highlight your main areas of strength
               </li>
               <li className="text-xs sm:text-sm text-slate-700 flex items-start gap-2">
-                <span className="text-emerald-600 font-bold flex-shrink-0">•</span>
+                <span className="text-emerald-600 font-bold flex-shrink-0">
+                  •
+                </span>
                 Include education and relevant certifications
               </li>
             </ul>

@@ -32,3 +32,9 @@ export const API_CONFIG = {
   MAX_RETRIES: 3,
   RETRY_DELAY_MS: 1000,
 } as const;
+
+export const GEMINI_CONFIG = {
+  MODEL: (process.env.GEMINI_MODEL || "gemini-2.5-flash") as string,
+  DEFAULT_MODEL: "gemini-2.5-flash" as const,
+  SUPPORTED_MODELS: ["gemini-2.5-flash", "gemini-3-flash-preview"] as const,
+} as const;

@@ -37,13 +37,10 @@ export async function apiRequest<T = any>(
       body: options.body,
     });
 
-    console.log(`[API] ${options.method || 'GET'} ${url} - Status: ${response.status}`);
-
     // Always try to parse response as JSON to get error details
     let data: ApiResponse<T> | null = null;
     try {
       data = (await response.json()) as ApiResponse<T>;
-      console.log("[API] Response data:", data);
     } catch (parseError) {
       console.error("[API] Failed to parse JSON response:", parseError);
       // If JSON parsing fails and response is not ok, throw HTTP error

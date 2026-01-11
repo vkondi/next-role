@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import PDFParser from "pdf2json";
+import { getLogger } from "@/lib/api/logger";
+
+const log = getLogger("API:FileUpload");
 
 /** Cleans PDF extracted text with spaces between characters */
 function cleanPdfText(rawText: string): string {
@@ -34,6 +37,7 @@ async function extractPdfText(arrayBuffer: ArrayBuffer): Promise<string> {
 
       pdfParser.on("pdfParser_dataError", (data) => {
         const errorMsg = typeof data === "string" ? data : (data as any)?.parserError || "Unknown PDF parsing error";
+        log.warn({ errorMsg }, "PDF parsing encountered error");
         reject(new Error(`PDF parsing error: ${errorMsg}`));
       });
 
@@ -63,15 +67,18 @@ async function extractPdfText(arrayBuffer: ArrayBuffer): Promise<string> {
         
         // Clean up the extracted text
         const cleanedText = cleanPdfText(text);
+        log.debug({ pageCount: pdfData.Pages?.length }, "PDF text extraction completed");
         
         resolve(cleanedText);
       });
 
       pdfParser.parseBuffer(buffer);
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      log.error({ error: errorMsg }, "PDF parsing failed");
       reject(
         new Error(
-          `Failed to extract text from PDF: ${error instanceof Error ? error.message : "Unknown error"}`
+          `Failed to extract text from PDF: ${errorMsg}`
         )
       );
     }
@@ -84,15 +91,22 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
 
     if (!file) {
+      log.warn("File upload - no file provided");
       return NextResponse.json(
         { success: false, error: "No file provided" },
         { status: 400 }
       );
     }
 
+    log.info({ fileName: file.name, fileSize: file.size, fileType: file.type }, "File upload received");
+
     // Validate file size (max 10MB)
     const maxFileSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxFileSize) {
+      log.warn(
+        { fileName: file.name, fileSize: file.size, maxSize: maxFileSize },
+        "File upload - size exceeds limit"
+      );
       return NextResponse.json(
         {
           success: false,
@@ -106,12 +120,15 @@ export async function POST(request: NextRequest) {
     let text = "";
 
     if (file.type === "text/plain" || file.name.endsWith(".txt")) {
+      log.debug({ fileName: file.name }, "Processing text file");
       // Read plain text files directly
       text = new TextDecoder().decode(arrayBuffer);
     } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+      log.debug({ fileName: file.name }, "Processing PDF file");
       // Extract text from PDF files
       text = await extractPdfText(arrayBuffer);
     } else {
+      log.warn({ fileName: file.name, fileType: file.type }, "File upload - unsupported file type");
       return NextResponse.json(
         {
           success: false,
@@ -122,6 +139,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!text.trim()) {
+      log.warn({ fileName: file.name }, "File upload - empty file");
       return NextResponse.json(
         {
           success: false,
@@ -131,17 +149,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    log.info({ fileName: file.name, textLength: text.length }, "File parsed successfully");
     return NextResponse.json(
       { success: true, text },
       { status: 200 }
     );
   } catch (error) {
-    console.error("File upload error:", error);
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    log.error({ error: errorMsg }, "File upload processing failed");
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to process file",
+        error: errorMsg || "Failed to process file",
       },
       { status: 500 }
     );

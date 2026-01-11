@@ -14,7 +14,7 @@ import {
   RoadmapTimeline,
   ApiModeToggle,
 } from "@/components";
-import { useApiMode } from "@/lib/context/ApiModeContext";
+import { useApiMode, useAIProvider } from "@/lib/context/SettingsContext";
 import { useResume } from "@/lib/context/ResumeContext";
 import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
 import { calculateTimelineMonths } from "@/lib/utils/timelineUtils";
@@ -30,6 +30,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 export default function DashboardPage() {
   const router = useRouter();
   const { mode } = useApiMode();
+  const { provider } = useAIProvider();
   const { resumeProfile } = useResume();
   const initialLoadRef = useRef(true);
   const [careerPathsMinimal, setCareerPathsMinimal] = useState<CareerPathMinimal[]>([]);
@@ -55,7 +56,7 @@ export default function DashboardPage() {
         const paths = await apiRequest<CareerPathMinimal[]>(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5 }),
+          body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5, aiProvider: provider }),
         });
         setCareerPathsMinimal(paths);
         // NO auto-selection - guide user to select one
@@ -67,7 +68,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     },
-    []
+    [provider]
   );
 
   // Unified effect: Handle initial load and mode changes
@@ -128,6 +129,7 @@ export default function DashboardPage() {
             careerPath: path,
             skillGapAnalysis: gaps,
             timelineMonths,
+            aiProvider: provider,
           }),
         });
         setRoadmap(roadmapData);
@@ -137,7 +139,7 @@ export default function DashboardPage() {
         setRoadmapLoading(false);
       }
     },
-    [mode]
+    [mode, provider]
   );
 
   const handlePathSelect = useCallback(
@@ -171,6 +173,7 @@ export default function DashboardPage() {
               roleId: minimalPath.roleId,
               roleName: minimalPath.roleName,
             },
+            aiProvider: provider,
           }),
         });
         // Merge with minimal data
@@ -202,6 +205,7 @@ export default function DashboardPage() {
           body: JSON.stringify({
             resumeProfile,
             careerPath: detailedPath,
+            aiProvider: provider,
           }),
         });
         setSkillGapAnalysis(gapAnalysis);
@@ -212,7 +216,7 @@ export default function DashboardPage() {
         setSkillGapLoading(false);
       }
     },
-    [mode, resumeProfile, careerPathsMinimal, loadRoadmap]
+    [mode, provider, resumeProfile, careerPathsMinimal, loadRoadmap]
   );
 
   if (error && !resumeProfile) {
