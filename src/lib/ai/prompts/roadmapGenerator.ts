@@ -210,14 +210,46 @@ export async function parseRoadmapGeneratorResponse(
     }
     
     // Ensure required arrays have defaults if missing from recovery
-    if (!parsed.phases || !Array.isArray(parsed.phases)) {
-      parsed.phases = [];
+    if (!parsed.phases || !Array.isArray(parsed.phases) || parsed.phases.length === 0) {
+      // Create a default phase if none exist
+      // Note: This is a fallback when AI response fails - ideally this shouldn't happen
+      const timelineMonths = parsed.timelineMonths || 6;
+      const halfway = Math.ceil(timelineMonths / 2);
+      
+      parsed.phases = [
+        {
+          phaseNumber: 1,
+          duration: `Month 1-${halfway}`,
+          skillsFocus: ["Core skill development"],
+          learningDirection: "Build foundation in target domain",
+          projectIdeas: ["Foundational hands-on project"],
+          milestones: ["Complete foundational learning", "Build first project"],
+          actionItems: ["Study key concepts", "Start foundational project"],
+        },
+        {
+          phaseNumber: 2,
+          duration: `Month ${halfway + 1}-${timelineMonths}`,
+          skillsFocus: ["Advanced skill development"],
+          learningDirection: "Deepen expertise and prepare for transition",
+          projectIdeas: ["Advanced portfolio project"],
+          milestones: ["Complete advanced learning", "Polish portfolio"],
+          actionItems: ["Advance skills", "Refine projects for portfolio"],
+        },
+      ];
     }
     if (!parsed.successMetrics || !Array.isArray(parsed.successMetrics)) {
-      parsed.successMetrics = [];
+      parsed.successMetrics = [
+        "Foundational skills acquired",
+        "Portfolio projects completed",
+        "Ready for target role interviews",
+      ];
     }
     if (!parsed.riskFactors || !Array.isArray(parsed.riskFactors)) {
-      parsed.riskFactors = [];
+      parsed.riskFactors = [
+        "Learning curve steepness",
+        "Time commitment",
+        "Technology changes",
+      ];
     }
     
     // Validate against schema

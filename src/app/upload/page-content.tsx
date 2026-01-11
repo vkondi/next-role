@@ -2,13 +2,18 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Upload, AlertCircle } from "lucide-react";
+import { ArrowRight, Upload, AlertCircle, Sparkles, ChevronDown } from "lucide-react";
 import { ApiModeToggle } from "@/components";
 import { useApiMode, useAIProvider } from "@/lib/context/SettingsContext";
 import { useResume } from "@/lib/context/ResumeContext";
 import { validateResumeText } from "@/lib/api/resumeValidation";
 import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
+import { SAMPLE_RESUMES } from "@/data/sampleResumes";
 import type { ResumeProfile } from "@/lib/types";
+
+// Client-side cache for sample resumes to avoid repeated API calls
+const sampleResumeCache = new Map<string, { text: string; timestamp: number }>();
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export default function UploadPageContent() {
   const { mode } = useApiMode();
@@ -24,6 +29,8 @@ export default function UploadPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [uploadMethod, setUploadMethod] = useState<"text" | "file">("file");
   const [fileError, setFileError] = useState<string | null>(null);
+  const [loadingSampleId, setLoadingSampleId] = useState<string | null>(null);
+  const [showSamples, setShowSamples] = useState(false);
 
   // Auto-scroll to extracted text when file is successfully parsed
   useEffect(() => {
@@ -151,6 +158,69 @@ export default function UploadPageContent() {
       setLoading(false);
     }
   };
+
+  const handleLoadSampleResume = useCallback(
+    async (sampleId: string) => {
+      const sample = SAMPLE_RESUMES.find((r) => r.id === sampleId);
+      if (!sample) return;
+
+      setLoadingSampleId(sampleId);
+      setError(null);
+      setFileError(null);
+
+      try {
+        let text: string;
+
+        // Check if we have a valid cached version
+        const cached = sampleResumeCache.get(sampleId);
+        const now = Date.now();
+        if (cached && now - cached.timestamp < CACHE_DURATION_MS) {
+          text = cached.text;
+        } else {
+          // Fetch the sample resume from the API endpoint
+          const response = await fetch(`/api/samples/resume/${sampleId}`);
+
+          if (!response.ok) {
+            throw new Error("Failed to load sample resume");
+          }
+
+          const data = await response.json();
+          text = data.text;
+
+          // Cache the result
+          sampleResumeCache.set(sampleId, { text, timestamp: now });
+        }
+
+        // Validate resume text
+        const validation = validateResumeText(text);
+        if (!validation.isValid) {
+          setError(validation.error || "Invalid resume content");
+          setLoadingSampleId(null);
+          return;
+        }
+
+        setResumeText(text);
+
+        // Auto-scroll to extracted text
+        setTimeout(() => {
+          extractedTextRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 100);
+
+        // Collapse the accordion after successful load
+        setShowSamples(false);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load sample resume"
+        );
+      } finally {
+        setLoadingSampleId(null);
+      }
+    },
+    []
+  );
 
   if (profile) {
     return (
@@ -441,6 +511,69 @@ export default function UploadPageContent() {
             </div>
           )}
 
+          {/* Sample Resumes Section - Collapsed by default, available for both tabs */}
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setShowSamples(!showSamples)}
+              className="w-full px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 hover:bg-slate-50 transition-colors"
+            >
+              <div className="flex items-start sm:items-center gap-2 sm:gap-3 text-left flex-1 min-w-0">
+                <Sparkles className="w-5 h-5 sm:w-5 sm:h-5 text-amber-500 flex-shrink-0 mt-0.5 sm:mt-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-900 text-sm sm:text-base leading-tight">
+                    Try Sample Resumes
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-600 mt-1 sm:mt-0.5">
+                    Don&apos;t have a resume handy? Start with a sample.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-semibold whitespace-nowrap">
+                  New
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 sm:w-5 sm:h-5 text-slate-600 transition-transform flex-shrink-0 ${
+                    showSamples ? "transform rotate-180" : ""
+                  }`}
+                />
+              </div>
+            </button>
+
+            {/* Collapsible Content */}
+            {showSamples && (
+              <div className="border-t border-slate-200 px-4 sm:px-6 py-4 sm:py-5 bg-slate-50 space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  {SAMPLE_RESUMES.map((sample) => (
+                    <button
+                      key={sample.id}
+                      onClick={() => handleLoadSampleResume(sample.id)}
+                      disabled={loading || loadingSampleId !== null}
+                      className="p-3 sm:p-4 border border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed text-left group bg-white"
+                    >
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <span className="text-xl sm:text-2xl flex-shrink-0">
+                          {sample.icon}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-600 transition-colors leading-snug">
+                            {sample.title}
+                          </p>
+                          <p className="text-xs text-slate-600 mt-0.5">
+                            {sample.subtitle}
+                          </p>
+                        </div>
+                        {loadingSampleId === sample.id && (
+                          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-600 animate-pulse flex-shrink-0 mt-1" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Input Section - Only show when not loading */}
           {!loading && (
             <>
@@ -545,7 +678,7 @@ export default function UploadPageContent() {
             </>
           )}
 
-          {/* Sample Resume Info */}
+          {/* Tips Section */}
           <div className="bg-slate-100 rounded-lg p-4 sm:p-6 space-y-3">
             <p className="font-semibold text-slate-900 text-sm sm:text-base">
               💡 Tips for Best Results

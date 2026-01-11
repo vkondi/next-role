@@ -1,0 +1,110 @@
+CHEN WEI
+Austin, TX 78701
+(512) 555-0892 | chen.wei.dev@email.com | github.com/chenwei-dev | linkedin.com/in/chenweidev
+
+SOFTWARE ENGINEER
+
+Results-driven Full Stack Software Engineer with 5 years of experience building scalable web applications and microservices. Specialized in React, Node.js, and cloud infrastructure with proven ability to deliver high-quality code in fast-paced agile environments. Passionate about clean code, performance optimization, and mentoring junior developers.
+
+TECHNICAL SKILLS
+
+Languages: JavaScript/TypeScript, Python, Java, SQL, HTML5, CSS3, Go
+Frameworks & Libraries: React, Next.js, Node.js, Express, Redux, GraphQL, Jest, React Testing Library, Spring Boot
+Databases: PostgreSQL, MongoDB, Redis, MySQL, DynamoDB
+Cloud & DevOps: AWS (EC2, S3, Lambda, RDS, CloudWatch), Docker, Kubernetes, Jenkins, GitHub Actions, Terraform
+Tools & Platforms: Git, Jira, Confluence, Figma, Postman, DataDog, Sentry, New Relic
+
+PROFESSIONAL EXPERIENCE
+
+Software Engineer II
+Dell Technologies, Austin, TX
+January 2022 - Present
+
+• Develop and maintain customer-facing e-commerce platform serving 2M+ monthly active users with React and Next.js, contributing to 15% increase in conversion rate
+• Design and implement RESTful APIs and GraphQL services using Node.js and Express, reducing average API response time by 40% through query optimization and caching strategies
+• Build automated CI/CD pipelines with GitHub Actions and Jenkins, decreasing deployment time from 2 hours to 15 minutes
+• Architect microservices infrastructure on AWS using Lambda, API Gateway, and DynamoDB, improving system scalability and reducing infrastructure costs by $30K annually
+• Collaborate with product managers and UX designers in bi-weekly sprint planning to deliver features aligned with business objectives
+• Mentor 3 junior engineers through code reviews, pair programming sessions, and technical documentation
+• Implement comprehensive unit and integration tests achieving 85% code coverage using Jest and React Testing Library
+• Participate in on-call rotation, troubleshooting production incidents and implementing fixes with average resolution time of 2 hours
+
+Software Engineer
+IBM, Austin, TX
+July 2019 - December 2021
+
+• Developed internal dashboard application using React and Redux for operations team, streamlining workflow and saving 10 hours per week in manual processes
+• Built backend services with Python and Flask, integrating with PostgreSQL database to manage customer data for enterprise clients
+• Implemented authentication and authorization using JWT and OAuth 2.0, ensuring secure access to sensitive information
+• Migrated legacy monolithic application to containerized microservices using Docker and Kubernetes, improving deployment flexibility
+• Created automated testing scripts that identified and prevented 30+ critical bugs before production release
+• Collaborated with cross-functional teams across US, India, and Brazil time zones using agile methodologies
+• Documented technical specifications and API endpoints, improving knowledge transfer and onboarding efficiency
+• Optimized database queries resulting in 50% reduction in page load times for reporting features
+
+Junior Software Developer (Internship)
+RetailMeNot, Austin, TX
+June 2018 - August 2018
+
+• Developed promotional banner system using JavaScript and HTML/CSS, deployed across 50+ partner websites
+• Fixed 25+ bugs in existing codebase and improved code quality through refactoring
+• Participated in daily standup meetings and sprint retrospectives
+• Learned agile development practices and version control workflows with Git
+
+PROJECTS
+
+E-Commerce Marketplace Platform | github.com/chenwei-dev/marketplace
+• Built full-stack marketplace application with React, Node.js, and PostgreSQL supporting user authentication, product listings, shopping cart, and payment integration with Stripe
+• Implemented real-time messaging between buyers and sellers using WebSocket
+• Deployed on AWS EC2 with automated backups and monitoring
+
+Personal Finance Tracker | github.com/chenwei-dev/finance-tracker
+• Created budgeting application with React and Chart.js for expense visualization
+• Integrated with Plaid API for automatic bank transaction imports
+• Utilized Redux for state management and Firebase for authentication
+
+EDUCATION
+
+Bachelor of Science in Computer Science
+University of Texas at Austin, Austin, TX
+Graduated: May 2018, GPA: 3.6/4.0
+
+Relevant Coursework:
+• Software Engineering
+• Data Structures and Algorithms
+• Computer Architecture
+• Operating Systems
+• Database Systems
+• Web Development
+• Cloud Computing
+
+CERTIFICATIONS
+
+• AWS Certified Solutions Architect – Associate, Amazon Web Services, Issued: March 2023, Expires: March 2025
+• Google Cloud Associate Cloud Engineer, Google Cloud, Issued: June 2022
+• Kubernetes Administrator (CKA), Linux Foundation, Issued: September 2021
+
+TECHNICAL PROFICIENCIES
+
+Frontend: React, Next.js, Vue.js, Webpack, Babel, GraphQL Apollo Client
+Backend: Node.js, Express, Python/Django, Java/Spring Boot, GraphQL, RESTful APIs
+Databases: PostgreSQL, MongoDB, Redis, MySQL, DynamoDB, Elasticsearch
+DevOps: Docker, Kubernetes, Jenkins, GitHub Actions, AWS, Terraform, CloudFormation
+Testing: Jest, React Testing Library, Mocha, Chai, Selenium, Cypress
+
+AWARDS & RECOGNITION
+
+• Dell Technologies Employee of the Quarter, Q2 2023
+• Best Technical Presentation, Internal Engineering Conference, 2022
+• "Rising Star" Award, IBM Watson Group, 2021
+
+LANGUAGES
+
+• English (Native)
+• Mandarin Chinese (Conversational)
+
+VOLUNTEER & COMMUNITY
+
+• Technical Mentor, Code2040 Program, 2022-Present
+• Speaker, Austin JavaScript Meetup, "Building Scalable React Applications" (2023)
+• Open Source Contributor, React ecosystem projects, 2018-Present
