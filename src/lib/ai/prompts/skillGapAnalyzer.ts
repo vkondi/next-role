@@ -6,7 +6,8 @@ import type {
   CareerPath,
   SkillGapAnalysis,
 } from "../schemas";
-import { callDeepseekAPI } from "@/lib/api/deepseek";
+import { callAI } from "@/lib/api/aiProvider";
+import type { AIProvider } from "@/lib/api/aiProvider";
 
 /** Create skill gap analysis prompt */
 export function createSkillGapAnalyzerPrompt(
@@ -56,12 +57,14 @@ export async function parseSkillGapAnalyzerResponse(
   try {
     let cleanedText = responseText.trim();
     
-    // Remove markdown code blocks
-    if (cleanedText.startsWith("```")) {
-      cleanedText = cleanedText.replace(/^```[^\n]*\n?/, "").replace(/\n?```$/, "");
-    }
+    // Aggressively remove markdown code blocks
+    cleanedText = cleanedText
+      .replace(/^```[\w]*[\s\n]*/m, "")   // Remove opening backticks with optional language
+      .replace(/[\s\n]*```$/m, "")       // Remove closing backticks with optional whitespace
+      .replace(/^`+/m, "")                // Remove any leading backticks
+      .replace(/`+$/m, "");              // Remove any trailing backticks
     
-    // Extract JSON if wrapped in text
+    cleanedText = cleanedText.trim();
     if (!cleanedText.startsWith("{")) {
       const jsonStart = cleanedText.indexOf("{");
       if (jsonStart !== -1) {
@@ -111,10 +114,11 @@ export async function parseSkillGapAnalyzerResponse(
 
 export async function analyzeSkillGaps(
   resumeProfile: ResumeProfile,
-  careerPath: CareerPath
+  careerPath: CareerPath,
+  aiProvider: AIProvider = "deepseek"
 ): Promise<SkillGapAnalysis> {
   const prompt = createSkillGapAnalyzerPrompt(resumeProfile, careerPath);
-  const response = await callDeepseekAPI(prompt, 1100);
+  const response = await callAI(aiProvider, prompt, 1100);
   const analysis = await parseSkillGapAnalyzerResponse(response);
   return analysis;
 }

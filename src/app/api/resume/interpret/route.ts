@@ -5,6 +5,7 @@ import { ResumeInterpreterRequestSchema } from "@/lib/ai/schemas";
 import { interpretResume } from "@/lib/ai/prompts/resumeInterpreter";
 import { generateMockResumeProfile } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
+import { getAIProviderFromBody } from "@/lib/api/aiProvider";
 import { responseCache } from "@/lib/api/cache";
 import crypto from "crypto";
 
@@ -25,6 +26,8 @@ const handler = async (request: NextRequest) => {
     }
 
     const { resumeText } = validatedData.data;
+    // Extract provider directly from the parsed body
+    const aiProvider = getAIProviderFromBody(body);
 
     let profile;
     
@@ -38,13 +41,15 @@ const handler = async (request: NextRequest) => {
         profile = cachedProfile;
       } else {
         try {
-          profile = await interpretResume(resumeText);
+          profile = await interpretResume(resumeText, aiProvider);
           responseCache.set(cacheKey, profile, 24 * 60 * 60 * 1000);
         } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.error(`[Resume Interpreter] Failed to process resume with ${aiProvider}:`, errorMsg);
           return NextResponse.json(
             {
               success: false,
-              error: `Failed to interpret resume: ${error instanceof Error ? error.message : String(error)}`,
+              error: `Failed to interpret resume: ${errorMsg}`,
             },
             { status: 500 }
           );

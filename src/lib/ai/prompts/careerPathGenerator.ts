@@ -3,7 +3,8 @@
 import { CareerPathSchema, CareerPathMinimalSchema } from "../schemas";
 import type { CareerPath, CareerPathMinimal, ResumeProfile } from "../schemas";
 import { z } from "zod";
-import { callDeepseekAPI } from "@/lib/api/deepseek";
+import { callAI } from "@/lib/api/aiProvider";
+import type { AIProvider } from "@/lib/api/aiProvider";
 
 /** Minimal prompt for quick path generation (~50% token reduction) */
 export function createCareerPathMinimalPrompt(
@@ -39,11 +40,13 @@ export async function parseCareerPathMinimalResponse(
   try {
     let cleanedText = responseText.trim();
     
-    // Remove markdown code blocks
-    if (cleanedText.startsWith("```")) {
-      const endIdx = cleanedText.lastIndexOf("```");
-      if (endIdx > 3) cleanedText = cleanedText.substring(cleanedText.indexOf("\n") + 1, endIdx);
-    }
+    // Aggressively remove markdown code blocks
+    cleanedText = cleanedText
+      .replace(/^```[\w]*[\s\n]*/m, "")   // Remove opening backticks with optional language
+      .replace(/[\s\n]*```$/m, "")       // Remove closing backticks with optional whitespace
+      .replace(/^`+/m, "")                // Remove any leading backticks
+      .replace(/`+$/m, "");              // Remove any trailing backticks
+    
     cleanedText = cleanedText.trim();
 
     // If response still has text before JSON, extract the JSON array
@@ -57,7 +60,69 @@ export async function parseCareerPathMinimalResponse(
       }
     }
 
-    const parsed = JSON.parse(cleanedText) as Array<Record<string, unknown>>;
+    let parsed: any;
+    try {
+      parsed = JSON.parse(cleanedText) as Array<Record<string, unknown>>;
+    } catch (e) {
+      // JSON parsing failed - try to reconstruct from regex
+      const reconstructArray = (text: string): Array<Record<string, any>> => {
+        const items: Array<Record<string, any>> = [];
+        
+        // Extract each object from the array using regex
+        // Look for patterns like {id:..., name:..., ...}
+        const objPattern = /\{[^}]+\}/g;
+        const matches = text.match(objPattern) || [];
+        
+        matches.forEach((objStr) => {
+          const item: Record<string, any> = {
+            id: "",
+            name: "",
+            desc: "",
+            mkt: 0,
+            ind: 0,
+            skl: [],
+          };
+          
+          // Extract id (string)
+          const idMatch = objStr.match(/"?id"?\s*:\s*"([^"]+)"/i);
+          if (idMatch) item.id = idMatch[1];
+          
+          // Extract name (string)
+          const nameMatch = objStr.match(/"?name"?\s*:\s*"([^"]+)"/i);
+          if (nameMatch) item.name = nameMatch[1];
+          
+          // Extract desc (string)
+          const descMatch = objStr.match(/"?desc"?\s*:\s*"([^"]+)"/i);
+          if (descMatch) item.desc = descMatch[1];
+          
+          // Extract mkt (number)
+          const mktMatch = objStr.match(/"?mkt"?\s*:\s*(\d+)/i);
+          if (mktMatch) item.mkt = parseInt(mktMatch[1], 10);
+          
+          // Extract ind (number)
+          const indMatch = objStr.match(/"?ind"?\s*:\s*(\d+)/i);
+          if (indMatch) item.ind = parseInt(indMatch[1], 10);
+          
+          // Extract skl (array)
+          const sklMatch = objStr.match(/"?skl"?\s*:\s*\[([^\]]+)\]/i);
+          if (sklMatch) {
+            item.skl = sklMatch[1]
+              .split(",")
+              .map((s: string) => s.trim().replace(/"/g, ""))
+              .filter((s: string) => s.length > 0);
+          }
+          
+          items.push(item);
+        });
+        
+        return items;
+      };
+      
+      parsed = reconstructArray(cleanedText);
+      if (parsed.length === 0) {
+        throw e; // If reconstruction yielded nothing, throw original error
+      }
+    }
     
     if (!Array.isArray(parsed) || parsed.length === 0) {
       throw new Error("Response is not a valid array");
@@ -65,12 +130,12 @@ export async function parseCareerPathMinimalResponse(
     
     // Map condensed field names
     const mapped = parsed.map((item) => ({
-      roleId: (item.id || item.roleId) as string,
-      roleName: (item.name || item.roleName) as string,
-      description: (item.desc || item.description) as string,
-      marketDemandScore: (item.mkt || item.marketDemandScore) as number,
-      industryAlignment: (item.ind || item.industryAlignment) as number,
-      requiredSkills: (item.skl || item.requiredSkills) as string[],
+      roleId: (item.id || item.roleId || "") as string,
+      roleName: (item.name || item.roleName || "") as string,
+      description: (item.desc || item.description || "") as string,
+      marketDemandScore: (item.mkt || item.marketDemandScore || 0) as number,
+      industryAlignment: (item.ind || item.industryAlignment || 0) as number,
+      requiredSkills: (item.skl || item.requiredSkills || []) as string[],
     }));
     
     return z.array(CareerPathMinimalSchema).parse(mapped);
@@ -88,11 +153,13 @@ export async function parseCareerPathDetailsResponse(responseText: string) {
   try {
     let cleanedText = responseText.trim();
     
-    // Remove markdown code blocks
-    if (cleanedText.startsWith("```")) {
-      const endIdx = cleanedText.lastIndexOf("```");
-      if (endIdx > 3) cleanedText = cleanedText.substring(cleanedText.indexOf("\n") + 1, endIdx);
-    }
+    // Aggressively remove markdown code blocks
+    cleanedText = cleanedText
+      .replace(/^```[\w]*[\s\n]*/m, "")   // Remove opening backticks with optional language
+      .replace(/[\s\n]*```$/m, "")       // Remove closing backticks with optional whitespace
+      .replace(/^`+/m, "")                // Remove any leading backticks
+      .replace(/`+$/m, "");              // Remove any trailing backticks
+    
     cleanedText = cleanedText.trim();
 
     // Extract JSON object if there's text before it
@@ -146,10 +213,11 @@ export async function parseCareerPathDetailsResponse(responseText: string) {
  */
 export async function generateCareerPathsMinimal(
   resumeProfile: ResumeProfile,
-  numberOfPaths: number = 5
+  numberOfPaths: number = 5,
+  aiProvider: AIProvider = "deepseek"
 ): Promise<CareerPathMinimal[]> {
   const prompt = createCareerPathMinimalPrompt(resumeProfile, numberOfPaths);
-  const response = await callDeepseekAPI(prompt);
+  const response = await callAI(aiProvider, prompt, 1200);
   return parseCareerPathMinimalResponse(response);
 }
 
@@ -158,10 +226,11 @@ export async function generateCareerPathsMinimal(
  */
 export async function generateCareerPathDetails(
   resumeProfile: ResumeProfile,
-  pathBasic: { roleId: string; roleName: string }
+  pathBasic: { roleId: string; roleName: string },
+  aiProvider: AIProvider = "deepseek"
 ) {
   const prompt = createCareerPathDetailsPrompt(resumeProfile, pathBasic.roleName);
-  const response = await callDeepseekAPI(prompt);
+  const response = await callAI(aiProvider, prompt, 1000);
   const details = await parseCareerPathDetailsResponse(response);
   return {
     ...pathBasic,
@@ -256,12 +325,12 @@ export async function parseCareerPathGeneratorResponse(
  */
 export async function generateCareerPaths(
   resumeProfile: ResumeProfile,
-  numberOfPaths: number = 5
+  numberOfPaths: number = 5,
+  aiProvider: AIProvider = "deepseek"
 ): Promise<CareerPath[]> {
   const prompt = createCareerPathGeneratorPrompt(resumeProfile, numberOfPaths);
   
-  // Call Deepseek API
-  const response = await callDeepseekAPI(prompt);
+  const response = await callAI(aiProvider, prompt, 1200);
   const paths = await parseCareerPathGeneratorResponse(response);
   
   return paths;

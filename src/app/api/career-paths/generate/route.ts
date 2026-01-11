@@ -6,6 +6,7 @@ import { generateCareerPathsMinimal } from "@/lib/ai/prompts/careerPathGenerator
 import { generateMockCareerPathsMinimal } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
 import { responseCache } from "@/lib/api/cache";
+import { getAIProviderFromBody } from "@/lib/api/aiProvider";
 import crypto from "crypto";
 
 const handler = async (request: NextRequest) => {
@@ -49,7 +50,9 @@ const handler = async (request: NextRequest) => {
     } else {
       // Call actual AI API with minimal prompt (MUCH FASTER)
       try {
-        paths = await generateCareerPathsMinimal(resumeProfile, numberOfPaths);
+        // Extract provider directly from the parsed body
+        const aiProvider = getAIProviderFromBody(body);
+        paths = await generateCareerPathsMinimal(resumeProfile, numberOfPaths, aiProvider);
         // Cache for 3 hours (higher TTL since tech stack is fairly stable)
         const cacheKey = crypto
           .createHash("sha256")

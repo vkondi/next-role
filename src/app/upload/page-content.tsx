@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Upload, AlertCircle } from "lucide-react";
 import { ApiModeToggle } from "@/components";
-import { useApiMode } from "@/lib/context/ApiModeContext";
+import { useApiMode, useAIProvider } from "@/lib/context/SettingsContext";
 import { useResume } from "@/lib/context/ResumeContext";
 import { validateResumeText } from "@/lib/api/resumeValidation";
 import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
@@ -12,6 +12,7 @@ import type { ResumeProfile } from "@/lib/types";
 
 export default function UploadPageContent() {
   const { mode } = useApiMode();
+  const { provider } = useAIProvider();
   const { setResumeProfile } = useResume();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extractedTextRef = useRef<HTMLDivElement>(null);
@@ -83,17 +84,17 @@ export default function UploadPageContent() {
       const profile = await apiRequest<ResumeProfile>(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText }),
+        body: JSON.stringify({ resumeText, aiProvider: provider }),
       });
       setProfile(profile);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      console.error("Resume analysis error:", errorMessage, err);
+      console.error("[Upload] Resume analysis failed:", errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [mode, resumeText]);
+  }, [mode, resumeText, provider]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

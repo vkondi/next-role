@@ -5,6 +5,7 @@ import { SkillGapAnalyzerRequestSchema } from "@/lib/ai/schemas";
 import { analyzeSkillGaps } from "@/lib/ai/prompts/skillGapAnalyzer";
 import { generateMockSkillGapAnalysis } from "@/lib/api/mockData";
 import { responseCache } from "@/lib/api/cache";
+import { getAIProviderFromBody } from "@/lib/api/aiProvider";
 
 const handler = async (request: NextRequest) => {
   try {
@@ -39,7 +40,9 @@ const handler = async (request: NextRequest) => {
       analysis = generateMockSkillGapAnalysis(resumeProfile, careerPath);
     } else {
       try {
-        analysis = await analyzeSkillGaps(resumeProfile, careerPath);
+        // Extract provider directly from the parsed body
+        const aiProvider = getAIProviderFromBody(body);
+        analysis = await analyzeSkillGaps(resumeProfile, careerPath, aiProvider);
         
         const techKey = resumeProfile.techStack.slice(0, 3).join("_");
         const cacheKey = `skillgap_${careerPath.roleId}_${resumeProfile.currentRole}_${resumeProfile.yearsOfExperience}_${techKey}`;

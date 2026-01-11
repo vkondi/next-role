@@ -3,8 +3,8 @@
  */
 
 import type { Metadata } from "next";
+import { SettingsProvider } from "@/lib/context/SettingsContext";
 import { ResumeProvider } from "@/lib/context/ResumeContext";
-import { ApiModeProvider } from "@/lib/context/ApiModeContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -36,11 +36,11 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className="bg-slate-50 text-slate-900">
-        <ApiModeProvider>
+        <SettingsProvider>
           <ResumeProvider>
             <div className="min-h-screen flex flex-col">{children}</div>
           </ResumeProvider>
-        </ApiModeProvider>
+        </SettingsProvider>
 
         {/* Cloudflare Web Analytics - Only load if token exists */}
         {token && (

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { generateCareerPathDetails } from "@/lib/ai/prompts/careerPathGenerator";
 import { generateMockCareerPathDetails } from "@/lib/api/mockData";
 import { responseCache } from "@/lib/api/cache";
+import { getAIProviderFromBody } from "@/lib/api/aiProvider";
 
 const CareerPathDetailsRequestSchema = z.object({
   resumeProfile: z.object({
@@ -52,7 +53,9 @@ const handler = async (request: NextRequest) => {
       details = generateMockCareerPathDetails(resumeProfile, pathBasic);
     } else {
       try {
-        details = await generateCareerPathDetails(resumeProfile, pathBasic);
+        // Extract provider directly from the parsed body
+        const aiProvider = getAIProviderFromBody(body);
+        details = await generateCareerPathDetails(resumeProfile, pathBasic, aiProvider);
         const cacheKey = `details_${pathBasic.roleId}_${resumeProfile.currentRole}`;
         responseCache.set(cacheKey, details, 7 * 24 * 60 * 60 * 1000);
       } catch (error) {

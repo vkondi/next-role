@@ -5,6 +5,7 @@ import { RoadmapGeneratorRequestSchema } from "@/lib/ai/schemas";
 import { generateRoadmap } from "@/lib/ai/prompts/roadmapGenerator";
 import { generateMockRoadmap } from "@/lib/api/mockData";
 import { responseCache } from "@/lib/api/cache";
+import { getAIProviderFromBody } from "@/lib/api/aiProvider";
 
 const handler = async (request: NextRequest) => {
   try {
@@ -46,7 +47,9 @@ const handler = async (request: NextRequest) => {
     } else {
       // Call actual AI API
       try {
-        roadmap = await generateRoadmap(resumeProfile, careerPath, skillGapAnalysis, timelineMonths);
+        // Extract provider directly from the parsed body
+        const aiProvider = getAIProviderFromBody(body);
+        roadmap = await generateRoadmap(resumeProfile, careerPath, skillGapAnalysis, timelineMonths, aiProvider);
         
         const skillKey = skillGapAnalysis.skillGaps
           .filter((sg) => sg.importance === "High")

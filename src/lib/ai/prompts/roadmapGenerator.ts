@@ -10,7 +10,8 @@ import type {
   SkillGapAnalysis,
   CareerRoadmap,
 } from "../schemas";
-import { callDeepseekAPI } from "@/lib/api/deepseek";
+import { callAI } from "@/lib/api/aiProvider";
+import type { AIProvider } from "@/lib/api/aiProvider";
 
 export function createRoadmapGeneratorPrompt(
   resumeProfile: ResumeProfile,
@@ -68,15 +69,14 @@ export async function parseRoadmapGeneratorResponse(
 ): Promise<CareerRoadmap> {
   try {
     let cleanedText = responseText.trim();
-    if (cleanedText.startsWith("```json")) {
-      cleanedText = cleanedText.substring(7);
-    }
-    if (cleanedText.startsWith("```")) {
-      cleanedText = cleanedText.substring(3);
-    }
-    if (cleanedText.endsWith("```")) {
-      cleanedText = cleanedText.substring(0, cleanedText.length - 3);
-    }
+    
+    // Aggressively remove markdown code blocks
+    cleanedText = cleanedText
+      .replace(/^```[\w]*[\s\n]*/m, "")   // Remove opening backticks with optional language
+      .replace(/[\s\n]*```$/m, "")       // Remove closing backticks with optional whitespace
+      .replace(/^`+/m, "")                // Remove any leading backticks
+      .replace(/`+$/m, "");              // Remove any trailing backticks
+    
     cleanedText = cleanedText.trim();
 
     if (!cleanedText || cleanedText === "{}") {
@@ -121,7 +121,8 @@ export async function generateRoadmap(
   resumeProfile: ResumeProfile,
   careerPath: CareerPath,
   skillGapAnalysis: SkillGapAnalysis,
-  timelineMonths: number = 6
+  timelineMonths: number = 6,
+  aiProvider: AIProvider = "deepseek"
 ): Promise<CareerRoadmap> {
   const prompt = createRoadmapGeneratorPrompt(
     resumeProfile,
@@ -130,7 +131,7 @@ export async function generateRoadmap(
     timelineMonths
   );
 
-  const response = await callDeepseekAPI(prompt, 1200);
+  const response = await callAI(aiProvider, prompt, 1200);
   const roadmap = await parseRoadmapGeneratorResponse(response);
 
   return roadmap;
