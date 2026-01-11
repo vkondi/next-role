@@ -4,7 +4,10 @@ import { CareerPathSchema, CareerPathMinimalSchema } from "../schemas";
 import type { CareerPath, CareerPathMinimal, ResumeProfile } from "../schemas";
 import { z } from "zod";
 import { callAI } from "@/lib/api/aiProvider";
+import { getLogger } from "@/lib/api/logger";
 import type { AIProvider } from "@/lib/api/aiProvider";
+
+const log = getLogger("LIB:CareerPathGenerator");
 
 /** Minimal prompt for quick path generation (~50% token reduction) */
 export function createCareerPathMinimalPrompt(
@@ -140,6 +143,10 @@ export async function parseCareerPathMinimalResponse(
     
     return z.array(CareerPathMinimalSchema).parse(mapped);
   } catch (error) {
+    log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "Failed to parse career paths response"
+    );
     throw new Error(
       `Failed to parse career paths: ${error instanceof Error ? error.message : String(error)}`
     );
@@ -216,9 +223,12 @@ export async function generateCareerPathsMinimal(
   numberOfPaths: number = 5,
   aiProvider: AIProvider = "deepseek"
 ): Promise<CareerPathMinimal[]> {
+  log.info({ aiProvider, numberOfPaths, currentRole: resumeProfile.currentRole }, "Generating minimal career paths");
   const prompt = createCareerPathMinimalPrompt(resumeProfile, numberOfPaths);
   const response = await callAI(aiProvider, prompt, 1200);
-  return parseCareerPathMinimalResponse(response);
+  const paths = await parseCareerPathMinimalResponse(response);
+  log.info({ count: paths.length }, "Career paths generated successfully");
+  return paths;
 }
 
 /**
@@ -229,9 +239,11 @@ export async function generateCareerPathDetails(
   pathBasic: { roleId: string; roleName: string },
   aiProvider: AIProvider = "deepseek"
 ) {
+  log.info({ aiProvider, role: pathBasic.roleName }, "Generating career path details");
   const prompt = createCareerPathDetailsPrompt(resumeProfile, pathBasic.roleName);
   const response = await callAI(aiProvider, prompt, 1000);
   const details = await parseCareerPathDetailsResponse(response);
+  log.info({ role: pathBasic.roleName }, "Career path details generated");
   return {
     ...pathBasic,
     ...details,

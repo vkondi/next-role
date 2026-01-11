@@ -1,6 +1,9 @@
 /** In-memory cache for API responses */
 
 import crypto from "crypto";
+import { getLogger } from "./logger";
+
+const log = getLogger("API:Cache");
 
 interface CacheEntry<T> {
   data: T;
@@ -26,14 +29,17 @@ class ResponseCache {
     const entry = this.cache.get(key);
 
     if (!entry) {
+      log.debug({ key: key.substring(0, 8) }, "Cache miss");
       return null;
     }
 
     if (this.isExpired(entry)) {
+      log.debug({ key: key.substring(0, 8) }, "Cache entry expired");
       this.cache.delete(key);
       return null;
     }
 
+    log.debug({ key: key.substring(0, 8) }, "Cache hit");
     return entry.data as T;
   }
 
@@ -44,10 +50,13 @@ class ResponseCache {
       timestamp: Date.now(),
       ttl,
     });
+    log.debug({ key: key.substring(0, 8), ttlMs: ttl }, "Cache entry stored");
   }
 
   clear(): void {
+    const size = this.cache.size;
     this.cache.clear();
+    log.info({ clearedEntries: size }, "Cache cleared");
   }
 
   size(): number {

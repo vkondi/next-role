@@ -6,14 +6,23 @@ import { generateRoadmap } from "@/lib/ai/prompts/roadmapGenerator";
 import { generateMockRoadmap } from "@/lib/api/mockData";
 import { responseCache } from "@/lib/api/cache";
 import { getAIProviderFromBody } from "@/lib/api/aiProvider";
+import { getLogger } from "@/lib/api/logger";
+
+const log = getLogger("API:RoadmapGenerate");
 
 const handler = async (request: NextRequest) => {
   try {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
+    log.info({ useMock }, "Roadmap generation request received");
+
     const validatedData = RoadmapGeneratorRequestSchema.safeParse(body);
     if (!validatedData.success) {
+      log.warn(
+        { error: validatedData.error.errors[0].message },
+        "Roadmap generation - validation failed"
+      );
       return NextResponse.json(
         {
           success: false,
@@ -35,6 +44,7 @@ const handler = async (request: NextRequest) => {
       const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${skillKey}`;
       const cached = responseCache.get(cacheKey);
       if (cached) {
+        log.debug({ cacheKey }, "Roadmap generation cache hit");
         return NextResponse.json({ success: true, data: cached });
       }
     }
@@ -42,6 +52,7 @@ const handler = async (request: NextRequest) => {
     let roadmap;
     
     if (useMock) {
+      log.debug("Generating mock roadmap");
       // Use mock data
       roadmap = generateMockRoadmap(resumeProfile, careerPath, skillGapAnalysis, timelineMonths);
     } else {
@@ -49,6 +60,10 @@ const handler = async (request: NextRequest) => {
       try {
         // Extract provider directly from the parsed body
         const aiProvider = getAIProviderFromBody(body);
+        log.info(
+          { aiProvider, timelineMonths, role: careerPath.roleName },
+          "Generating roadmap with AI provider"
+        );
         roadmap = await generateRoadmap(resumeProfile, careerPath, skillGapAnalysis, timelineMonths, aiProvider);
         
         const skillKey = skillGapAnalysis.skillGaps
@@ -58,27 +73,35 @@ const handler = async (request: NextRequest) => {
           .join("_");
         const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${skillKey}`;
         responseCache.set(cacheKey, roadmap, 30 * 24 * 60 * 60 * 1000);
+        log.debug({ cacheKey }, "Roadmap cached");
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        log.error(
+          { error: errorMsg, aiProvider: getAIProviderFromBody(body) },
+          "Failed to generate roadmap"
+        );
         return NextResponse.json(
           {
             success: false,
-            error: `Failed to generate roadmap: ${error instanceof Error ? error.message : String(error)}`,
+            error: `Failed to generate roadmap: ${errorMsg}`,
           },
           { status: 500 }
         );
       }
     }
 
+    log.info({ phases: roadmap.phases.length }, "Roadmap generated successfully");
     return NextResponse.json({
       success: true,
       data: roadmap,
     });
   } catch (error) {
-    console.error("Roadmap generator error:", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    log.error({ error: errorMsg }, "Roadmap generation request failed");
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMsg,
       },
       { status: 500 }
     );

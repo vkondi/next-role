@@ -2,7 +2,10 @@
 
 import { callDeepseekAPI } from "./deepseek";
 import { callGeminiAPI } from "./gemini";
+import { getLogger } from "./logger";
 import type { NextRequest } from "next/server";
+
+const log = getLogger("API:ProviderSelector");
 
 export type AIProvider = "deepseek" | "gemini";
 
@@ -38,13 +41,15 @@ export async function getAIProviderFromRequest(request: NextRequest): Promise<AI
 
 /** Call the specified AI provider */
 export async function callAI(provider: AIProvider, prompt: string, maxTokens: number = 1000): Promise<string> {
+  log.debug({ provider, maxTokens }, "Routing AI call to provider");
+  
   if (provider === "gemini") {
     return callGeminiAPI(prompt, maxTokens);
   } else if (provider === "deepseek") {
     return callDeepseekAPI(prompt, maxTokens);
   } else {
-    throw new Error(
-      `Unknown AI provider: ${provider}. Use 'deepseek' or 'gemini'.`
-    );
+    const errorMsg = `Unknown AI provider: ${provider}. Use 'deepseek' or 'gemini'.`;
+    log.error({ provider }, "Unknown AI provider specified");
+    throw new Error(errorMsg);
   }
 }

@@ -2,6 +2,9 @@
 
 import { Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
+import { getLogger } from "./logger";
+
+const log = getLogger("API:Deepseek");
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
@@ -30,10 +33,12 @@ interface DeepseekResponse {
 
 export async function callDeepseekAPI(prompt: string, maxTokens: number = 1000): Promise<string> {
   if (!DEEPSEEK_API_KEY) {
-    throw new Error(
-      "Deepseek API key not configured. Please set DEEPSEEK_API_KEY environment variable."
-    );
+    const errorMsg = "Deepseek API key not configured. Please set DEEPSEEK_API_KEY environment variable.";
+    log.error(errorMsg);
+    throw new Error(errorMsg);
   }
+
+  log.info({ model: "deepseek-chat", maxTokens }, "Calling Deepseek API");
 
   try {
     const payload: DeepseekRequest = {
@@ -62,21 +67,26 @@ export async function callDeepseekAPI(prompt: string, maxTokens: number = 1000):
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(
-        `Deepseek API error: ${response.status} - ${JSON.stringify(errorData)}`
-      );
+      const errorMsg = `Deepseek API error: ${response.status} - ${JSON.stringify(errorData)}`;
+      log.error({ status: response.status, error: errorData }, "Deepseek API request failed");
+      throw new Error(errorMsg);
     }
 
     const data = (await response.json()) as DeepseekResponse;
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      log.warn("Invalid Deepseek API response format - missing choices or message");
       throw new Error("Invalid Deepseek API response format");
     }
 
+    log.debug({ responseLength: data.choices[0].message.content.length }, "Deepseek API response received successfully");
     return data.choices[0].message.content;
   } catch (error) {
-    throw new Error(
-      `Failed to call Deepseek API: ${error instanceof Error ? error.message : String(error)}`
+    const errorMsg = `Failed to call Deepseek API: ${error instanceof Error ? error.message : String(error)}`;
+    log.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      "Deepseek API call failed with exception"
     );
+    throw new Error(errorMsg);
   }
 }

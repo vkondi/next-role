@@ -1,5 +1,9 @@
 /** Rate limiter: 5 requests/day per IP */
 
+import { getLogger } from "./logger";
+
+const log = getLogger("API:RateLimiter");
+
 interface RateLimitRecord {
   count: number;
   resetTime: number;
@@ -35,6 +39,7 @@ export function checkRateLimit(ip: string): {
   resetTime: number;
 } {
   if (isLocalIp(ip)) {
+    log.debug({ ip }, "Rate limit check - local IP, skipping");
     return {
       allowed: true,
       remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY,
@@ -51,6 +56,7 @@ export function checkRateLimit(ip: string): {
       resetTime: now + RATE_LIMIT_CONFIG.WINDOW_SIZE_MS,
     };
     rateLimitStore.set(ip, newRecord);
+    log.info({ ip, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY - 1 }, "Rate limit - new window");
     return {
       allowed: true,
       remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY - 1,
@@ -61,12 +67,20 @@ export function checkRateLimit(ip: string): {
   const isAllowed = record.count < RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY;
   record.count++;
 
+  const remaining = Math.max(
+    0,
+    RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY - record.count
+  );
+
+  if (!isAllowed) {
+    log.warn({ ip, remaining, resetTime: record.resetTime }, "Rate limit exceeded");
+  } else {
+    log.debug({ ip, remaining }, "Rate limit - request allowed");
+  }
+
   return {
     allowed: isAllowed,
-    remaining: Math.max(
-      0,
-      RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY - record.count
-    ),
+    remaining,
     resetTime: record.resetTime,
   };
 }
@@ -102,7 +116,10 @@ export function cleanupRateLimitStore(): void {
     }
   });
 
-  entriesToDelete.forEach((ip) => rateLimitStore.delete(ip));
+  if (entriesToDelete.length > 0) {
+    log.debug({ count: entriesToDelete.length }, "Rate limit store cleanup");
+    entriesToDelete.forEach((ip) => rateLimitStore.delete(ip));
+  }
 }
 
 // Cleanup every hour
@@ -125,6 +142,7 @@ export function withRateLimit(
       if (!rateLimitResult.allowed) {
         const { NextResponse } = await import("next/server");
         const resetTime = new Date(rateLimitResult.resetTime).toLocaleString();
+        log.warn({ clientIp, resetTime }, "Rate limit - request rejected");
         return NextResponse.json(
           {
             success: false,

@@ -6,6 +6,9 @@ import { generateCareerPathDetails } from "@/lib/ai/prompts/careerPathGenerator"
 import { generateMockCareerPathDetails } from "@/lib/api/mockData";
 import { responseCache } from "@/lib/api/cache";
 import { getAIProviderFromBody } from "@/lib/api/aiProvider";
+import { getLogger } from "@/lib/api/logger";
+
+const log = getLogger("API:CareerPathDetails");
 
 const CareerPathDetailsRequestSchema = z.object({
   resumeProfile: z.object({
@@ -26,8 +29,14 @@ const handler = async (request: NextRequest) => {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
+    log.info({ useMock }, "Career path details request received");
+
     const validatedData = CareerPathDetailsRequestSchema.safeParse(body);
     if (!validatedData.success) {
+      log.warn(
+        { error: validatedData.error.errors[0].message },
+        "Career path details - validation failed"
+      );
       return NextResponse.json(
         {
           success: false,
@@ -43,6 +52,7 @@ const handler = async (request: NextRequest) => {
       const cacheKey = `details_${pathBasic.roleId}_${resumeProfile.currentRole}`;
       const cached = responseCache.get(cacheKey);
       if (cached) {
+        log.debug({ cacheKey }, "Career path details cache hit");
         return NextResponse.json({ success: true, data: cached });
       }
     }
@@ -50,35 +60,48 @@ const handler = async (request: NextRequest) => {
     let details;
 
     if (useMock) {
+      log.debug({ role: pathBasic.roleName }, "Generating mock career path details");
       details = generateMockCareerPathDetails(resumeProfile, pathBasic);
     } else {
       try {
         // Extract provider directly from the parsed body
         const aiProvider = getAIProviderFromBody(body);
+        log.info(
+          { aiProvider, role: pathBasic.roleName },
+          "Generating career path details with AI provider"
+        );
         details = await generateCareerPathDetails(resumeProfile, pathBasic, aiProvider);
         const cacheKey = `details_${pathBasic.roleId}_${resumeProfile.currentRole}`;
         responseCache.set(cacheKey, details, 7 * 24 * 60 * 60 * 1000);
+        log.debug({ cacheKey }, "Career path details cached");
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        log.error(
+          { error: errorMsg, role: pathBasic.roleName, aiProvider: getAIProviderFromBody(body) },
+          "Failed to generate path details"
+        );
         return NextResponse.json(
           {
             success: false,
-            error: `Failed to generate path details: ${error instanceof Error ? error.message : String(error)}`,
+            error: `Failed to generate path details: ${errorMsg}`,
           },
           { status: 500 }
         );
       }
     }
 
+    log.info({ role: pathBasic.roleName }, "Career path details generated successfully");
     return NextResponse.json({
       success: true,
       data: details,
     });
   } catch (error) {
-    console.error("Career path details error:", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    log.error({ error: errorMsg }, "Career path details request failed");
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMsg,
       },
       { status: 500 }
     );

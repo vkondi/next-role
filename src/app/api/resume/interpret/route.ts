@@ -7,15 +7,24 @@ import { generateMockResumeProfile } from "@/lib/api/mockData";
 import { withRateLimit } from "@/lib/api/rateLimiter";
 import { getAIProviderFromBody } from "@/lib/api/aiProvider";
 import { responseCache } from "@/lib/api/cache";
+import { getLogger } from "@/lib/api/logger";
 import crypto from "crypto";
+
+const log = getLogger("API:ResumeInterpret");
 
 const handler = async (request: NextRequest) => {
   try {
     const body = await request.json();
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
 
+    log.info({ useMock }, "Resume interpretation request received");
+
     const validatedData = ResumeInterpreterRequestSchema.safeParse(body);
     if (!validatedData.success) {
+      log.warn(
+        { error: validatedData.error.errors[0].message },
+        "Resume interpretation - validation failed"
+      );
       return NextResponse.json(
         {
           success: false,
@@ -32,20 +41,27 @@ const handler = async (request: NextRequest) => {
     let profile;
     
     if (useMock) {
+      log.debug("Generating mock resume profile");
       profile = generateMockResumeProfile(resumeText);
     } else {
       const cacheKey = crypto.createHash("sha256").update(resumeText).digest("hex");
       const cachedProfile = responseCache.get(cacheKey);
       
       if (cachedProfile) {
+        log.debug({ cacheKey }, "Resume profile cache hit");
         profile = cachedProfile;
       } else {
         try {
+          log.info({ aiProvider }, "Interpreting resume with AI provider");
           profile = await interpretResume(resumeText, aiProvider);
           responseCache.set(cacheKey, profile, 24 * 60 * 60 * 1000);
+          log.debug({ cacheKey }, "Resume profile cached");
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
-          console.error(`[Resume Interpreter] Failed to process resume with ${aiProvider}:`, errorMsg);
+          log.error(
+            { error: errorMsg, aiProvider },
+            "Failed to interpret resume"
+          );
           return NextResponse.json(
             {
               success: false,
@@ -57,16 +73,18 @@ const handler = async (request: NextRequest) => {
       }
     }
 
+    log.info("Resume interpreted successfully");
     return NextResponse.json({
       success: true,
       data: profile,
     });
   } catch (error) {
-    console.error("Resume interpreter error:", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    log.error({ error: errorMsg }, "Resume interpretation request failed");
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMsg,
       },
       { status: 500 }
     );
