@@ -6,6 +6,10 @@ import { z } from "zod";
 import { callAI } from "@/lib/api/aiProvider";
 import { getLogger } from "@/lib/api/logger";
 import type { AIProvider } from "@/lib/api/aiProvider";
+import {
+  removeMarkdownBlocks,
+  normalizeEnumValue,
+} from "@/lib/api/jsonRecovery";
 
 const log = getLogger("LIB:CareerPathGenerator");
 
@@ -35,22 +39,119 @@ Use EXACT enum values. Return ONLY this JSON:
 }
 
 /**
+ * Recover career path minimal array from truncated/malformed AI response
+ * Extracts individual path objects using regex when JSON parsing fails
+ */
+function tryRecoverCareerPathMinimalArray(
+  text: string
+): Array<Record<string, any>> | null {
+  const items: Array<Record<string, any>> = [];
+
+  // Try to extract individual path objects using regex
+  const objPattern = /\{[^}]+\}/g;
+  const matches = text.match(objPattern) || [];
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  matches.forEach((objStr) => {
+    const item: Record<string, any> = {
+      id: "",
+      name: "",
+      desc: "",
+      mkt: 0,
+      ind: 0,
+      skl: [],
+    };
+
+    // Extract id (string)
+    const idMatch = objStr.match(/"?id"?\s*:\s*"([^"]+)"/i);
+    if (idMatch) item.id = idMatch[1];
+
+    // Extract name (string)
+    const nameMatch = objStr.match(/"?name"?\s*:\s*"([^"]+)"/i);
+    if (nameMatch) item.name = nameMatch[1];
+
+    // Extract desc (string)
+    const descMatch = objStr.match(/"?desc"?\s*:\s*"([^"]+)"/i);
+    if (descMatch) item.desc = descMatch[1];
+
+    // Extract mkt (number)
+    const mktMatch = objStr.match(/"?mkt"?\s*:\s*(\d+)/i);
+    if (mktMatch) item.mkt = parseInt(mktMatch[1], 10);
+
+    // Extract ind (number)
+    const indMatch = objStr.match(/"?ind"?\s*:\s*(\d+)/i);
+    if (indMatch) item.ind = parseInt(indMatch[1], 10);
+
+    // Extract skl (array)
+    const sklMatch = objStr.match(/"?skl"?\s*:\s*\[([^\]]+)\]/i);
+    if (sklMatch) {
+      item.skl = sklMatch[1]
+        .split(",")
+        .map((s: string) => s.trim().replace(/"/g, ""))
+        .filter((s: string) => s.length > 0);
+    }
+
+    items.push(item);
+  });
+
+  return items.length > 0 ? items : null;
+}
+
+/**
+ * Recover career path details object from truncated/malformed response
+ * Extracts fields using regex when JSON parsing fails
+ */
+function tryRecoverCareerPathDetails(text: string): Record<string, any> | null {
+  const recovered: Record<string, any> = {};
+
+  // Extract effortLevel
+  const effortMatch = text.match(/"?effortLevel"?\s*:\s*"([^"]+)"/i);
+  if (effortMatch) {
+    const normalized = normalizeEnumValue(effortMatch[1], [
+      "Low",
+      "Medium",
+      "High",
+    ]);
+    if (normalized) recovered.effortLevel = normalized;
+  }
+
+  // Extract rewardPotential
+  const rewardMatch = text.match(/"?rewardPotential"?\s*:\s*"([^"]+)"/i);
+  if (rewardMatch) {
+    const normalized = normalizeEnumValue(rewardMatch[1], [
+      "Low",
+      "Medium",
+      "High",
+    ]);
+    if (normalized) recovered.rewardPotential = normalized;
+  }
+
+  // Extract why/reasoning (may be truncated)
+  const whyMatch = text.match(/"?why"?\s*:\s*"([^"]*)"/i);
+  if (whyMatch) {
+    recovered.reasoning = whyMatch[1].split('"')[0];
+  }
+
+  // Extract desc/description (may be truncated)
+  const descMatch = text.match(/"?desc"?\s*:\s*"([^"]*)"/i);
+  if (descMatch) {
+    recovered.detailedDescription = descMatch[1].split('"')[0];
+  }
+
+  return Object.keys(recovered).length > 0 ? recovered : null;
+}
+
+/**
  * Parses minimal career paths response - FAST, handles malformed responses
  */
 export async function parseCareerPathMinimalResponse(
   responseText: string
 ): Promise<CareerPathMinimal[]> {
   try {
-    let cleanedText = responseText.trim();
-    
-    // Aggressively remove markdown code blocks
-    cleanedText = cleanedText
-      .replace(/^```[\w]*[\s\n]*/m, "")   // Remove opening backticks with optional language
-      .replace(/[\s\n]*```$/m, "")       // Remove closing backticks with optional whitespace
-      .replace(/^`+/m, "")                // Remove any leading backticks
-      .replace(/`+$/m, "");              // Remove any trailing backticks
-    
-    cleanedText = cleanedText.trim();
+    let cleanedText = removeMarkdownBlocks(responseText.trim());
 
     // If response still has text before JSON, extract the JSON array
     if (!cleanedText.startsWith("[")) {
@@ -67,70 +168,18 @@ export async function parseCareerPathMinimalResponse(
     try {
       parsed = JSON.parse(cleanedText) as Array<Record<string, unknown>>;
     } catch (e) {
-      // JSON parsing failed - try to reconstruct from regex
-      const reconstructArray = (text: string): Array<Record<string, any>> => {
-        const items: Array<Record<string, any>> = [];
-        
-        // Extract each object from the array using regex
-        // Look for patterns like {id:..., name:..., ...}
-        const objPattern = /\{[^}]+\}/g;
-        const matches = text.match(objPattern) || [];
-        
-        matches.forEach((objStr) => {
-          const item: Record<string, any> = {
-            id: "",
-            name: "",
-            desc: "",
-            mkt: 0,
-            ind: 0,
-            skl: [],
-          };
-          
-          // Extract id (string)
-          const idMatch = objStr.match(/"?id"?\s*:\s*"([^"]+)"/i);
-          if (idMatch) item.id = idMatch[1];
-          
-          // Extract name (string)
-          const nameMatch = objStr.match(/"?name"?\s*:\s*"([^"]+)"/i);
-          if (nameMatch) item.name = nameMatch[1];
-          
-          // Extract desc (string)
-          const descMatch = objStr.match(/"?desc"?\s*:\s*"([^"]+)"/i);
-          if (descMatch) item.desc = descMatch[1];
-          
-          // Extract mkt (number)
-          const mktMatch = objStr.match(/"?mkt"?\s*:\s*(\d+)/i);
-          if (mktMatch) item.mkt = parseInt(mktMatch[1], 10);
-          
-          // Extract ind (number)
-          const indMatch = objStr.match(/"?ind"?\s*:\s*(\d+)/i);
-          if (indMatch) item.ind = parseInt(indMatch[1], 10);
-          
-          // Extract skl (array)
-          const sklMatch = objStr.match(/"?skl"?\s*:\s*\[([^\]]+)\]/i);
-          if (sklMatch) {
-            item.skl = sklMatch[1]
-              .split(",")
-              .map((s: string) => s.trim().replace(/"/g, ""))
-              .filter((s: string) => s.length > 0);
-          }
-          
-          items.push(item);
-        });
-        
-        return items;
-      };
-      
-      parsed = reconstructArray(cleanedText);
-      if (parsed.length === 0) {
-        throw e; // If reconstruction yielded nothing, throw original error
+      // JSON parsing failed - try recovery via regex reconstruction
+      const recovered = tryRecoverCareerPathMinimalArray(cleanedText);
+      if (!recovered) {
+        throw e; // If recovery fails, throw original error
       }
+      parsed = recovered;
     }
-    
+
     if (!Array.isArray(parsed) || parsed.length === 0) {
       throw new Error("Response is not a valid array");
     }
-    
+
     // Map condensed field names
     const mapped = parsed.map((item) => ({
       roleId: (item.id || item.roleId || "") as string,
@@ -140,7 +189,7 @@ export async function parseCareerPathMinimalResponse(
       industryAlignment: (item.ind || item.industryAlignment || 0) as number,
       requiredSkills: (item.skl || item.requiredSkills || []) as string[],
     }));
-    
+
     return z.array(CareerPathMinimalSchema).parse(mapped);
   } catch (error) {
     log.error(
@@ -148,7 +197,9 @@ export async function parseCareerPathMinimalResponse(
       "Failed to parse career paths response"
     );
     throw new Error(
-      `Failed to parse career paths: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to parse career paths: ${
+        error instanceof Error ? error.message : String(error)
+      }`
     );
   }
 }
@@ -158,16 +209,7 @@ export async function parseCareerPathMinimalResponse(
  */
 export async function parseCareerPathDetailsResponse(responseText: string) {
   try {
-    let cleanedText = responseText.trim();
-    
-    // Aggressively remove markdown code blocks
-    cleanedText = cleanedText
-      .replace(/^```[\w]*[\s\n]*/m, "")   // Remove opening backticks with optional language
-      .replace(/[\s\n]*```$/m, "")       // Remove closing backticks with optional whitespace
-      .replace(/^`+/m, "")                // Remove any leading backticks
-      .replace(/`+$/m, "");              // Remove any trailing backticks
-    
-    cleanedText = cleanedText.trim();
+    let cleanedText = removeMarkdownBlocks(responseText.trim());
 
     // Extract JSON object if there's text before it
     if (!cleanedText.startsWith("{")) {
@@ -184,33 +226,49 @@ export async function parseCareerPathDetailsResponse(responseText: string) {
       throw new Error("Empty or invalid JSON response");
     }
 
-    const parsed = JSON.parse(cleanedText) as Record<string, unknown>;
-    
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(cleanedText) as Record<string, unknown>;
+    } catch (parseError) {
+      // JSON parsing failed - try recovery via regex extraction
+      const recovered = tryRecoverCareerPathDetails(cleanedText);
+      if (!recovered) {
+        throw parseError;
+      }
+      parsed = recovered;
+    }
+
     // Normalize enum values: "Very High" -> "High", "Very Low" -> "Low"
     const normalizeEnum = (value: unknown): string => {
       if (typeof value !== "string") return value as string;
-      if (value === "Very High") return "High";
-      if (value === "Very Low") return "Low";
-      return value;
+      return (
+        normalizeEnumValue(value, ["Low", "Medium", "High"]) ||
+        (value as string)
+      );
     };
-    
+
     // Map abbreviated field names to full names
     const mapped = {
       effortLevel: normalizeEnum(parsed.eff || parsed.effortLevel),
       rewardPotential: normalizeEnum(parsed.rew || parsed.rewardPotential),
       reasoning: (parsed.why || parsed.reasoning) as string,
-      detailedDescription: (parsed.desc || parsed.detailedDescription) as string,
+      detailedDescription: (parsed.desc ||
+        parsed.detailedDescription) as string,
     };
-    
-    return z.object({
-      effortLevel: z.enum(["Low", "Medium", "High"]),
-      rewardPotential: z.enum(["Low", "Medium", "High"]),
-      reasoning: z.string(),
-      detailedDescription: z.string(),
-    }).parse(mapped);
+
+    return z
+      .object({
+        effortLevel: z.enum(["Low", "Medium", "High"]),
+        rewardPotential: z.enum(["Low", "Medium", "High"]),
+        reasoning: z.string(),
+        detailedDescription: z.string(),
+      })
+      .parse(mapped);
   } catch (error) {
     throw new Error(
-      `Failed to parse path details: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to parse path details: ${
+        error instanceof Error ? error.message : String(error)
+      }`
     );
   }
 }
@@ -223,7 +281,10 @@ export async function generateCareerPathsMinimal(
   numberOfPaths: number = 5,
   aiProvider: AIProvider = "deepseek"
 ): Promise<CareerPathMinimal[]> {
-  log.info({ aiProvider, numberOfPaths, currentRole: resumeProfile.currentRole }, "Generating minimal career paths");
+  log.info(
+    { aiProvider, numberOfPaths, currentRole: resumeProfile.currentRole },
+    "Generating minimal career paths"
+  );
   const prompt = createCareerPathMinimalPrompt(resumeProfile, numberOfPaths);
   const response = await callAI(aiProvider, prompt, 1200);
   const paths = await parseCareerPathMinimalResponse(response);
@@ -239,8 +300,14 @@ export async function generateCareerPathDetails(
   pathBasic: { roleId: string; roleName: string },
   aiProvider: AIProvider = "deepseek"
 ) {
-  log.info({ aiProvider, role: pathBasic.roleName }, "Generating career path details");
-  const prompt = createCareerPathDetailsPrompt(resumeProfile, pathBasic.roleName);
+  log.info(
+    { aiProvider, role: pathBasic.roleName },
+    "Generating career path details"
+  );
+  const prompt = createCareerPathDetailsPrompt(
+    resumeProfile,
+    pathBasic.roleName
+  );
   const response = await callAI(aiProvider, prompt, 1000);
   const details = await parseCareerPathDetailsResponse(response);
   log.info({ role: pathBasic.roleName }, "Career path details generated");
@@ -267,7 +334,11 @@ Given this professional profile:
 - Tech Stack: ${resumeProfile.techStack.join(", ")}
 - Strength Areas: ${resumeProfile.strengthAreas.join(", ")}
 - Industry Background: ${resumeProfile.industryBackground}
-${resumeProfile.certifications && resumeProfile.certifications.length > 0 ? `- Certifications: ${resumeProfile.certifications.join(", ")}` : ""}
+${
+  resumeProfile.certifications && resumeProfile.certifications.length > 0
+    ? `- Certifications: ${resumeProfile.certifications.join(", ")}`
+    : ""
+}
 
 Generate exactly ${numberOfPaths} strategic career paths that would be ideal next moves for this professional. Consider:
 1. Natural skill progression from their current role
@@ -320,14 +391,16 @@ export async function parseCareerPathGeneratorResponse(
     cleanedText = cleanedText.trim();
 
     const parsed = JSON.parse(cleanedText);
-    
+
     // Validate array of career paths
     const careerPathsSchema = z.array(CareerPathSchema);
     const validated = careerPathsSchema.parse(parsed);
     return validated;
   } catch (error) {
     throw new Error(
-      `Failed to parse career path generator response: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to parse career path generator response: ${
+        error instanceof Error ? error.message : String(error)
+      }`
     );
   }
 }
@@ -341,9 +414,9 @@ export async function generateCareerPaths(
   aiProvider: AIProvider = "deepseek"
 ): Promise<CareerPath[]> {
   const prompt = createCareerPathGeneratorPrompt(resumeProfile, numberOfPaths);
-  
+
   const response = await callAI(aiProvider, prompt, 1200);
   const paths = await parseCareerPathGeneratorResponse(response);
-  
+
   return paths;
 }

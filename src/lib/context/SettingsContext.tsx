@@ -16,7 +16,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [apiMode, setApiMode] = useState<ApiMode>("mock");
-  const [aiProvider, setAIProvider] = useState<AIProvider>("gemini");
+  const [aiProvider, setAIProvider] = useState<AIProvider>("deepseek");
 
   return (
     <SettingsContext.Provider value={{ apiMode, setApiMode, aiProvider, setAIProvider }}>

@@ -8,6 +8,11 @@ import type {
 } from "../schemas";
 import { callAI } from "@/lib/api/aiProvider";
 import type { AIProvider } from "@/lib/api/aiProvider";
+import {
+  removeMarkdownBlocks,
+  extractStringField,
+  normalizeEnumValue,
+} from "@/lib/api/jsonRecovery";
 
 /** Create skill gap analysis prompt */
 export function createSkillGapAnalyzerPrompt(
@@ -50,21 +55,98 @@ Respond with ONLY valid JSON matching this schema:
 }`;
 }
 
+/**
+ * Recover skill gap analysis from truncated/malformed response
+ * Extracts skill gaps array and other fields using regex
+ */
+function tryRecoverSkillGapAnalysis(text: string): Record<string, any> | null {
+  const recovered: Record<string, any> = {};
+  
+  // Extract simple fields
+  const careerPathId = extractStringField(text, "careerPathId");
+  if (careerPathId) recovered.careerPathId = careerPathId;
+  
+  const careerPathName = extractStringField(text, "careerPathName");
+  if (careerPathName) recovered.careerPathName = careerPathName;
+  
+  const overallGapSeverity = extractStringField(text, "overallGapSeverity");
+  if (overallGapSeverity) {
+    const normalized = normalizeEnumValue(overallGapSeverity, ["Low", "Medium", "High"]);
+    if (normalized) recovered.overallGapSeverity = normalized;
+  }
+  
+  const estimatedTimeToClose = extractStringField(text, "estimatedTimeToClose");
+  if (estimatedTimeToClose) recovered.estimatedTimeToClose = estimatedTimeToClose;
+  
+  const summary = extractStringField(text, "summary");
+  if (summary) recovered.summary = summary;
+  
+  // Extract skillGaps array
+  const skillGapsMatch = text.match(/"skillGaps"\s*:\s*\[(.*?)(?:\]|$)/is);
+  if (skillGapsMatch) {
+    const skillsContent = skillGapsMatch[1];
+    // Extract individual skill objects
+    const skillPattern = /\{[^}]*"skillName"[^}]*\}/g;
+    const skillMatches = skillsContent.match(skillPattern) || [];
+    
+    if (skillMatches.length > 0) {
+      recovered.skillGaps = skillMatches.map((skillStr) => {
+        const skill: Record<string, any> = {
+          skillName: "",
+          currentLevel: "None",
+          requiredLevel: "None",
+          importance: "Medium",
+        };
+        
+        // Extract skillName
+        const nameMatch = skillStr.match(/"skillName"\s*:\s*"([^"]*)"/i);
+        if (nameMatch) skill.skillName = nameMatch[1].split('"')[0];
+        
+        // Extract currentLevel with normalization
+        const currentMatch = skillStr.match(/"currentLevel"\s*:\s*"([^"]*)"/i);
+        if (currentMatch) {
+          const normalized = normalizeEnumValue(
+            currentMatch[1].split('"')[0],
+            ["None", "Beginner", "Intermediate", "Advanced", "Expert"]
+          );
+          if (normalized) skill.currentLevel = normalized;
+        }
+        
+        // Extract requiredLevel with normalization
+        const requiredMatch = skillStr.match(/"requiredLevel"\s*:\s*"([^"]*)"/i);
+        if (requiredMatch) {
+          const normalized = normalizeEnumValue(
+            requiredMatch[1].split('"')[0],
+            ["None", "Beginner", "Intermediate", "Advanced", "Expert"]
+          );
+          if (normalized) skill.requiredLevel = normalized;
+        }
+        
+        // Extract importance with normalization
+        const importanceMatch = skillStr.match(/"importance"\s*:\s*"([^"]*)"/i);
+        if (importanceMatch) {
+          const normalized = normalizeEnumValue(
+            importanceMatch[1].split('"')[0],
+            ["Low", "Medium", "High"]
+          );
+          if (normalized) skill.importance = normalized;
+        }
+        
+        return skill;
+      });
+    }
+  }
+  
+  return Object.keys(recovered).length > 0 ? recovered : null;
+}
+
 /** Parses skill gap analysis response */
 export async function parseSkillGapAnalyzerResponse(
   responseText: string
 ): Promise<SkillGapAnalysis> {
   try {
-    let cleanedText = responseText.trim();
+    let cleanedText = removeMarkdownBlocks(responseText.trim());
     
-    // Aggressively remove markdown code blocks
-    cleanedText = cleanedText
-      .replace(/^```[\w]*[\s\n]*/m, "")   // Remove opening backticks with optional language
-      .replace(/[\s\n]*```$/m, "")       // Remove closing backticks with optional whitespace
-      .replace(/^`+/m, "")                // Remove any leading backticks
-      .replace(/`+$/m, "");              // Remove any trailing backticks
-    
-    cleanedText = cleanedText.trim();
     if (!cleanedText.startsWith("{")) {
       const jsonStart = cleanedText.indexOf("{");
       if (jsonStart !== -1) {
@@ -75,24 +157,37 @@ export async function parseSkillGapAnalyzerResponse(
       }
     }
     
-    const parsed = JSON.parse(cleanedText);
+    let parsed: Record<string, any>;
+    try {
+      parsed = JSON.parse(cleanedText);
+    } catch (jsonError) {
+      // JSON parsing failed - try recovery via regex extraction
+      const recovered = tryRecoverSkillGapAnalysis(cleanedText);
+      if (!recovered) {
+        throw jsonError;
+      }
+      parsed = recovered;
+    }
     
-    // Normalize enum values: "Very High"/"Very Low" -> "High"/"Low"
-    const normalizeEnum = (value: unknown): string => {
-      if (typeof value !== "string") return String(value);
-      if (value === "Very High" || value === "Very Low") return value === "Very High" ? "High" : "Low";
-      return value;
-    };
+    // Ensure required skillGaps array has a default if missing from recovery
+    if (!parsed.skillGaps || !Array.isArray(parsed.skillGaps)) {
+      parsed.skillGaps = [];
+    }
     
     // Normalize all severity and importance fields
     if (parsed.overallGapSeverity) {
-      parsed.overallGapSeverity = normalizeEnum(parsed.overallGapSeverity);
+      const normalized = normalizeEnumValue(parsed.overallGapSeverity, ["Low", "Medium", "High"]);
+      if (normalized) parsed.overallGapSeverity = normalized;
     }
+    
     if (Array.isArray(parsed.skillGaps)) {
-      parsed.skillGaps = parsed.skillGaps.map((gap: any) => ({
-        ...gap,
-        importance: normalizeEnum(gap.importance),
-      }));
+      parsed.skillGaps = parsed.skillGaps.map((gap: any) => {
+        const importance = normalizeEnumValue(gap.importance, ["Low", "Medium", "High"]);
+        return {
+          ...gap,
+          importance: importance || gap.importance,
+        };
+      });
       
       // Sort by importance: High > Medium > Low
       const importancePriority = { "High": 3, "Medium": 2, "Low": 1 };
