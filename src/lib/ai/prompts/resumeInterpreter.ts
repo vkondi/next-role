@@ -283,7 +283,7 @@ function normalizeArray(value: any): string[] {
 
 export async function interpretResume(resumeText: string, aiProvider: AIProvider = "deepseek"): Promise<ResumeProfile> {
   const prompt = createResumeInterpreterPrompt(resumeText);
-  const response = await callAI(aiProvider, prompt);
+  const response = await callAI(aiProvider, prompt, 1200);
   const profile = await parseResumeInterpreterResponse(response, aiProvider);
   
   return profile;

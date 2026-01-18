@@ -134,8 +134,9 @@ export function withRateLimit(
 ): (request: any) => Promise<any> {
   return async (request: any) => {
     const useMock = request.nextUrl.searchParams.get("mock") === "true";
+    const enableRateLimiter = process.env.ENABLE_RATE_LIMITER === "true";
     
-    if (requiresAiIntegration && !useMock) {
+    if (enableRateLimiter && requiresAiIntegration && !useMock) {
       const clientIp = getClientIp(request.headers);
       const rateLimitResult = checkRateLimit(clientIp);
 

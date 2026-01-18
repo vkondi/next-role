@@ -54,8 +54,20 @@ const handler = async (request: NextRequest) => {
         try {
           log.info({ aiProvider }, "Interpreting resume with AI provider");
           profile = await interpretResume(resumeText, aiProvider);
-          responseCache.set(cacheKey, profile, 24 * 60 * 60 * 1000);
-          log.debug({ cacheKey }, "Resume profile cached");
+          
+          // Only cache if the profile has valid tech stack or experience details
+          const hasValidTechStack = profile.techStack && profile.techStack.length > 0;
+          const hasExperienceDetails = profile.yearsOfExperience > 0;
+          
+          if (hasValidTechStack && hasExperienceDetails) {
+            responseCache.set(cacheKey, profile, 24 * 60 * 60 * 1000);
+            log.debug({ cacheKey }, "Resume profile cached");
+          } else {
+            log.warn(
+              { hasValidTechStack, hasExperienceDetails },
+              "Resume profile not cached - missing tech stack or experience details (possible interpretation failure)"
+            );
+          }
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
           log.error(

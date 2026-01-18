@@ -1,7 +1,7 @@
 /** Career path generator prompt module */
 
-import { CareerPathSchema, CareerPathMinimalSchema } from "../schemas";
-import type { CareerPath, CareerPathMinimal, ResumeProfile } from "../schemas";
+import { CareerPathMinimalSchema } from "../schemas";
+import type { CareerPathMinimal, ResumeProfile } from "../schemas";
 import { z } from "zod";
 import { callAI } from "@/lib/api/aiProvider";
 import { getLogger } from "@/lib/api/logger";
@@ -65,16 +65,16 @@ function tryRecoverCareerPathMinimalArray(
       skl: [],
     };
 
-    // Extract id (string)
-    const idMatch = objStr.match(/"?id"?\s*:\s*"([^"]+)"/i);
+    // Extract id (string) - handle unterminated strings
+    const idMatch = objStr.match(/"?id"?\s*:\s*"([^"]*)/i);
     if (idMatch) item.id = idMatch[1];
 
-    // Extract name (string)
-    const nameMatch = objStr.match(/"?name"?\s*:\s*"([^"]+)"/i);
+    // Extract name (string) - handle unterminated strings
+    const nameMatch = objStr.match(/"?name"?\s*:\s*"([^"]*)/i);
     if (nameMatch) item.name = nameMatch[1];
 
-    // Extract desc (string)
-    const descMatch = objStr.match(/"?desc"?\s*:\s*"([^"]+)"/i);
+    // Extract desc (string) - handle unterminated strings
+    const descMatch = objStr.match(/"?desc"?\s*:\s*"([^"]*)/i);
     if (descMatch) item.desc = descMatch[1];
 
     // Extract mkt (number)
@@ -85,8 +85,8 @@ function tryRecoverCareerPathMinimalArray(
     const indMatch = objStr.match(/"?ind"?\s*:\s*(\d+)/i);
     if (indMatch) item.ind = parseInt(indMatch[1], 10);
 
-    // Extract skl (array)
-    const sklMatch = objStr.match(/"?skl"?\s*:\s*\[([^\]]+)\]/i);
+    // Extract skl (array) - handle incomplete arrays
+    const sklMatch = objStr.match(/"?skl"?\s*:\s*\[([^\]]*)/i);
     if (sklMatch) {
       item.skl = sklMatch[1]
         .split(",")
@@ -168,12 +168,20 @@ export async function parseCareerPathMinimalResponse(
     try {
       parsed = JSON.parse(cleanedText) as Array<Record<string, unknown>>;
     } catch (e) {
-      // JSON parsing failed - try recovery via regex reconstruction
-      const recovered = tryRecoverCareerPathMinimalArray(cleanedText);
-      if (!recovered) {
-        throw e; // If recovery fails, throw original error
+      // JSON parsing failed - first try to repair truncated strings
+      const { repairTruncatedJSON } = await import("@/lib/api/jsonRecovery");
+      const repairedText = repairTruncatedJSON(cleanedText);
+      
+      try {
+        parsed = JSON.parse(repairedText) as Array<Record<string, unknown>>;
+      } catch (repairError) {
+        // If repair failed, try recovery via regex reconstruction
+        const recovered = tryRecoverCareerPathMinimalArray(cleanedText);
+        if (!recovered) {
+          throw e; // If recovery fails, throw original error
+        }
+        parsed = recovered;
       }
-      parsed = recovered;
     }
 
     if (!Array.isArray(parsed) || parsed.length === 0) {
@@ -286,7 +294,7 @@ export async function generateCareerPathsMinimal(
     "Generating minimal career paths"
   );
   const prompt = createCareerPathMinimalPrompt(resumeProfile, numberOfPaths);
-  const response = await callAI(aiProvider, prompt, 1200);
+  const response = await callAI(aiProvider, prompt, 1500);
   const paths = await parseCareerPathMinimalResponse(response);
   log.info({ count: paths.length }, "Career paths generated successfully");
   return paths;
@@ -317,106 +325,4 @@ export async function generateCareerPathDetails(
   };
 }
 
-/**
- * Original function - kept for backward compatibility if needed
- */
-export function createCareerPathGeneratorPrompt(
-  resumeProfile: ResumeProfile,
-  numberOfPaths: number = 5
-): string {
-  return `You are an expert career strategist and talent analyst. Your task is to suggest potential career paths based on a professional's profile.
 
-IMPORTANT: You MUST respond with ONLY valid JSON, no markdown formatting, no code blocks, no extra text.
-
-Given this professional profile:
-- Current Role: ${resumeProfile.currentRole}
-- Years of Experience: ${resumeProfile.yearsOfExperience}
-- Tech Stack: ${resumeProfile.techStack.join(", ")}
-- Strength Areas: ${resumeProfile.strengthAreas.join(", ")}
-- Industry Background: ${resumeProfile.industryBackground}
-${
-  resumeProfile.certifications && resumeProfile.certifications.length > 0
-    ? `- Certifications: ${resumeProfile.certifications.join(", ")}`
-    : ""
-}
-
-Generate exactly ${numberOfPaths} strategic career paths that would be ideal next moves for this professional. Consider:
-1. Natural skill progression from their current role
-2. Market demand for the suggested roles
-3. How their background aligns with each path
-4. Growth potential and career satisfaction
-
-Return a JSON array with objects having this exact structure:
-[
-  {
-    "roleId": "string - unique id like 'path_001'",
-    "roleName": "string - clear role name",
-    "description": "string - 2-3 sentence description of role and responsibilities",
-    "marketDemandScore": number - 0-100 indicating market demand,
-    "effortLevel": "Low|Medium|High" - effort to transition to this role,
-    "rewardPotential": "Low|Medium|High" - career growth and salary potential,
-    "reasoning": "string - 2-3 sentences explaining why this path is good for them",
-    "requiredSkills": ["array of 5-8 key skills needed for this role"],
-    "industryAlignment": number - 0-100 alignment with their background
-  }
-]
-
-STRICT REQUIREMENTS:
-- Return ONLY the JSON array, no additional text
-- Include exactly ${numberOfPaths} career paths
-- roleId format: "path_001", "path_002", etc.
-- marketDemandScore and industryAlignment must be numbers 0-100
-- effortLevel and rewardPotential must be exactly "Low", "Medium", or "High"
-- Descriptions and reasoning should be insightful and specific to this person
-- Required skills should be realistic and obtainable`;
-}
-
-/**
- * Parses and validates the AI response for career path generation
- */
-export async function parseCareerPathGeneratorResponse(
-  responseText: string
-): Promise<CareerPath[]> {
-  try {
-    let cleanedText = responseText.trim();
-    if (cleanedText.startsWith("```json")) {
-      cleanedText = cleanedText.substring(7);
-    }
-    if (cleanedText.startsWith("```")) {
-      cleanedText = cleanedText.substring(3);
-    }
-    if (cleanedText.endsWith("```")) {
-      cleanedText = cleanedText.substring(0, cleanedText.length - 3);
-    }
-    cleanedText = cleanedText.trim();
-
-    const parsed = JSON.parse(cleanedText);
-
-    // Validate array of career paths
-    const careerPathsSchema = z.array(CareerPathSchema);
-    const validated = careerPathsSchema.parse(parsed);
-    return validated;
-  } catch (error) {
-    throw new Error(
-      `Failed to parse career path generator response: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
-  }
-}
-
-/**
- * Career Path Generator function (original, full data)
- */
-export async function generateCareerPaths(
-  resumeProfile: ResumeProfile,
-  numberOfPaths: number = 5,
-  aiProvider: AIProvider = "deepseek"
-): Promise<CareerPath[]> {
-  const prompt = createCareerPathGeneratorPrompt(resumeProfile, numberOfPaths);
-
-  const response = await callAI(aiProvider, prompt, 1200);
-  const paths = await parseCareerPathGeneratorResponse(response);
-
-  return paths;
-}

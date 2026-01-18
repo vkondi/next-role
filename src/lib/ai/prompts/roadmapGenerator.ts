@@ -279,7 +279,7 @@ export async function generateRoadmap(
     timelineMonths
   );
 
-  const response = await callAI(aiProvider, prompt, 1200);
+  const response = await callAI(aiProvider, prompt, 1500);
   const roadmap = await parseRoadmapGeneratorResponse(response);
 
   return roadmap;

@@ -12,6 +12,7 @@ import {
   removeMarkdownBlocks,
   extractStringField,
   normalizeEnumValue,
+  repairTruncatedJSON,
 } from "@/lib/api/jsonRecovery";
 
 /** Create skill gap analysis prompt */
@@ -161,12 +162,18 @@ export async function parseSkillGapAnalyzerResponse(
     try {
       parsed = JSON.parse(cleanedText);
     } catch (jsonError) {
-      // JSON parsing failed - try recovery via regex extraction
-      const recovered = tryRecoverSkillGapAnalysis(cleanedText);
-      if (!recovered) {
-        throw jsonError;
+      // First, try to repair truncated JSON by adding missing braces/brackets
+      try {
+        const repaired = repairTruncatedJSON(cleanedText);
+        parsed = JSON.parse(repaired);
+      } catch {
+        // If repair fails, try recovery via regex extraction
+        const recovered = tryRecoverSkillGapAnalysis(cleanedText);
+        if (!recovered) {
+          throw jsonError;
+        }
+        parsed = recovered;
       }
-      parsed = recovered;
     }
     
     // Ensure required skillGaps array has a default if missing from recovery
