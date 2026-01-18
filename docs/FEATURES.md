@@ -1,5 +1,7 @@
 # Features Overview
 
+> **Visual Guide:** This document includes references to screenshots in the [`assets/`](./assets/) folder. View the corresponding screenshots alongside each section for a better understanding of how each feature looks and works.
+
 ## Core Application Features
 
 NextRole is **not** a job portal or ATS score checker. It's a **career intelligence and planning tool** that:
@@ -26,6 +28,8 @@ The output feels like guidance from a **career consultant + strategist**, not a 
 - Professional, minimal Tailwind-based design
 - Responsive navigation header with branding
 
+![NextRole Landing Page](./assets/01-landing-page.png)
+
 ### 2. **Resume Upload** (`/upload`)
 - **Two input methods:**
   - Paste resume text directly
@@ -44,10 +48,19 @@ The output feels like guidance from a **career consultant + strategist**, not a 
   - Executive finance
   - Senior healthcare professional
 
+![Resume Upload Interface](./assets/02-upload-resume.png)
+
+After uploading, the system extracts and displays the career profile:
+
+![Extracted Career Profile](./assets/03-profile-extracted.png)
+
 ### 3. **Career Strategy Dashboard** (`/dashboard`)
 Main analysis page with multiple sections:
 
 #### A. Career Paths Section (Carousel)
+
+![Career Paths Carousel](./assets/04-career-paths.png)
+
 - **Minimal paths display** for fast loading
 - Horizontal carousel showing 4-6 options
 - Per-path card displays:
@@ -59,6 +72,9 @@ Main analysis page with multiple sections:
 - Smooth transitions and responsive design
 
 #### B. Detailed Path Section
+
+![Detailed Career Path Analysis](./assets/05-detailed-analysis.png)
+
 - Appears after selecting a path
 - Shows complete information:
   - Full description and reasoning
@@ -126,7 +142,7 @@ Main analysis page with multiple sections:
 5. User confirms/edits profile data
 6. System generates 4-6 possible career paths (carousel view)
 7. User selects path of interest
-8. System loads detailed path information
+8. System loads detailed path information with skill gap analysis
 9. System analyzes skill gaps for that path with visualization
 10. System generates personalized month-by-month roadmap
 11. User can explore metrics, risks, and resources
