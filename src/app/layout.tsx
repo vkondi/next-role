@@ -5,6 +5,7 @@
 import type { Metadata } from "next";
 import { SettingsProvider } from "@/lib/context/SettingsContext";
 import { ResumeProvider } from "@/lib/context/ResumeContext";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -35,10 +36,11 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body className="bg-slate-50 text-slate-900">
+      <body className="bg-slate-50 text-slate-900 flex flex-col">
         <SettingsProvider>
           <ResumeProvider>
-            <div className="min-h-screen flex flex-col">{children}</div>
+            <div className="flex-1">{children}</div>
+            <Footer />
           </ResumeProvider>
         </SettingsProvider>
 

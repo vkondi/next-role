@@ -14,6 +14,7 @@ import {
   RoadmapTimeline,
   ApiModeToggle,
 } from "@/components";
+import MockModeToast from "@/components/MockModeToast";
 import { useApiMode, useAIProvider } from "@/lib/context/SettingsContext";
 import { useResume } from "@/lib/context/ResumeContext";
 import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
@@ -287,6 +288,13 @@ export default function DashboardPage() {
               Based on your profile as a {resumeProfile.currentRole} with{" "}
               {resumeProfile.yearsOfExperience} years of experience
             </p>
+          </div>
+        )}
+
+        {/* Mock Mode Toast - Only show in mock mode */}
+        {mode === "mock" && (
+          <div className="px-2 sm:px-0">
+            <MockModeToast />
           </div>
         )}
 

@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Upload, AlertCircle, Sparkles, ChevronDown } from "lucide-react";
-import { ApiModeToggle } from "@/components";
+import { ApiModeToggle, MockModeToast } from "@/components";
 import { useApiMode, useAIProvider } from "@/lib/context/SettingsContext";
 import { useResume } from "@/lib/context/ResumeContext";
 import { validateResumeText } from "@/lib/api/resumeValidation";
@@ -258,6 +258,13 @@ export default function UploadPageContent() {
               </p>
             </div>
 
+            {/* Mock Mode Toast - Only show in mock mode */}
+            {mode === "mock" && (
+              <div className="px-2 sm:px-0">
+                <MockModeToast />
+              </div>
+            )}
+
             {/* Profile Display */}
             <div className="card-elevated space-y-4 sm:space-y-6">
               {/* Current Role and Experience */}
@@ -462,22 +469,6 @@ export default function UploadPageContent() {
             </button>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div
-              ref={errorRef}
-              className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3"
-            >
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-slate-900 text-sm sm:text-base">
-                  Error
-                </p>
-                <p className="text-xs sm:text-sm text-slate-600">{error}</p>
-              </div>
-            </div>
-          )}
-
           {/* File Error Message */}
           {fileError && (
             <div
@@ -490,23 +481,6 @@ export default function UploadPageContent() {
                   File Error
                 </p>
                 <p className="text-xs sm:text-sm text-slate-600">{fileError}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Loading Indicator */}
-          {loading && (
-            <div className="card-elevated">
-              <div className="flex items-center justify-center gap-3 sm:gap-4 flex-col sm:flex-row">
-                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 animate-pulse flex-shrink-0" />
-                <div className="space-y-1 sm:space-y-2 text-center sm:text-left">
-                  <p className="text-base sm:text-lg font-semibold text-slate-900">
-                    Analyzing your resume...
-                  </p>
-                  <p className="text-xs sm:text-sm text-slate-600">
-                    Extracting profile information and skills
-                  </p>
-                </div>
               </div>
             </div>
           )}
@@ -573,6 +547,39 @@ export default function UploadPageContent() {
               </div>
             )}
           </div>
+
+          {/* Loading Indicator - Appears after sample resumes */}
+          {loading && (
+            <div className="card-elevated">
+              <div className="flex items-center justify-center gap-3 sm:gap-4 flex-col sm:flex-row">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 animate-pulse flex-shrink-0" />
+                <div className="space-y-1 sm:space-y-2 text-center sm:text-left">
+                  <p className="text-base sm:text-lg font-semibold text-slate-900">
+                    Analyzing your resume...
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-600">
+                    Extracting profile information and skills
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div
+              ref={errorRef}
+              className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-5 flex items-start gap-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-slate-900 text-sm sm:text-base">
+                  Error
+                </p>
+                <p className="text-xs sm:text-sm text-slate-600">{error}</p>
+              </div>
+            </div>
+          )}
 
           {/* Input Section - Only show when not loading */}
           {!loading && (
