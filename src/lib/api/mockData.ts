@@ -36,24 +36,23 @@ export function generateMockResumeProfile(_resumeText: string): ResumeProfile {
   };
 }
 
-export function generateMockCareerPaths(
+/**
+ * Generate MINIMAL career paths (for carousel - fast loading)
+ */
+export function generateMockCareerPathsMinimal(
   profile: ResumeProfile
-): CareerPath[] {
-  // Generate profession-agnostic career paths based on profile analysis
-  // This works for ANY profession: technical, marketing, sales, finance, etc.
-  
-  const paths: CareerPath[] = [];
+): CareerPathMinimal[] {
   const yearsOfExp = profile.yearsOfExperience;
   const currentRole = profile.currentRole;
   const industryBg = profile.industryBackground;
   const strengthCount = profile.strengthAreas.length;
   
-  // Determine seniority level
   const isSenior = yearsOfExp >= 5;
   const isVeryExperienced = yearsOfExp >= 10;
   
-  // Path 1: Leadership/Management Track (works for all professions)
-  // Natural progression for experienced professionals
+  const paths: CareerPathMinimal[] = [];
+  
+  // Path 1: Leadership/Management Track
   if (yearsOfExp >= 2) {
     const leadershipTitle = isSenior 
       ? `Director of ${industriesToFunction(industryBg) || currentRole}`
@@ -63,41 +62,23 @@ export function generateMockCareerPaths(
       roleId: "leadership-track",
       roleName: leadershipTitle,
       description: `Lead and manage teams in ${industryBg || "your industry"}. Build organizational culture and drive strategic direction for your team.`,
-      marketDemandScore: 78 + (yearsOfExp * 2), // Higher score for more experience
+      marketDemandScore: Math.min(100, 78 + (yearsOfExp * 2)),
       industryAlignment: 92,
-      effortLevel: yearsOfExp >= 4 ? "Low" : "Medium",
-      rewardPotential: "High",
-      reasoning: `Your ${yearsOfExp} years as a ${currentRole} with strengths in ${profile.strengthAreas.slice(0, 2).join(" and ")} position you well to lead teams.`,
-      requiredSkills: [
-        "Team Leadership",
-        "Strategic Planning",
-        "People Management",
-        "Decision Making",
-      ],
+      requiredSkills: ["Team Leadership", "Strategic Planning", "People Management", "Decision Making"],
     });
   }
 
-  // Path 2: Specialization/Expert Track (works for all professions)
-  // Deepen expertise in current domain
+  // Path 2: Specialization/Expert Track
   paths.push({
     roleId: "specialization-track",
     roleName: `Senior/Lead ${currentRole}`,
     description: `Become the go-to expert in your field. Deepen your expertise and influence on specialized work rather than management.`,
     marketDemandScore: 85,
     industryAlignment: 95,
-    effortLevel: "Low",
-    rewardPotential: "High",
-    reasoning: `Your strong foundation in ${profile.strengthAreas[0]} and domain knowledge makes specialization a natural progression.`,
-    requiredSkills: [
-      "Deep Domain Expertise",
-      "Problem Solving",
-      "Innovation",
-      "Thought Leadership",
-    ],
+    requiredSkills: ["Deep Domain Expertise", "Problem Solving", "Innovation", "Thought Leadership"],
   });
 
-  // Path 3: Lateral Movement (works for all professions)
-  // Move to related role with transferable skills
+  // Path 3: Lateral Movement
   if (strengthCount >= 2) {
     const relatedRoles = suggestRelatedRoles(currentRole, industryBg);
     paths.push({
@@ -106,15 +87,11 @@ export function generateMockCareerPaths(
       description: `Transition to ${relatedRoles.title} leveraging your transferable skills. Expand your professional horizons while applying existing expertise.`,
       marketDemandScore: 72,
       industryAlignment: 80,
-      effortLevel: "Medium",
-      rewardPotential: "High",
-      reasoning: `Your experience in ${profile.strengthAreas.slice(0, 2).join(" and ")} translates well to ${relatedRoles.title} roles.`,
       requiredSkills: relatedRoles.requiredSkills,
     });
   }
 
-  // Path 4: Executive/Strategic Track (works for all professions)
-  // Move toward C-level or strategic roles
+  // Path 4: Executive/Strategic Track
   if (isSenior) {
     const executiveTitle = isVeryExperienced ? "VP/C-Level" : "Senior Leadership";
     paths.push({
@@ -123,20 +100,11 @@ export function generateMockCareerPaths(
       description: `Shape organizational strategy and vision at the executive level. Drive business outcomes and set strategic direction for your organization.`,
       marketDemandScore: 75,
       industryAlignment: 85,
-      effortLevel: "High",
-      rewardPotential: "High",
-      reasoning: `With ${yearsOfExp} years of experience and proven success, you're positioned to move into strategic leadership roles.`,
-      requiredSkills: [
-        "Business Strategy",
-        "Organizational Leadership",
-        "Financial Acumen",
-        "Stakeholder Management",
-      ],
+      requiredSkills: ["Business Strategy", "Organizational Leadership", "Financial Acumen", "Stakeholder Management"],
     });
   }
 
-  // Path 5: Consulting/Advisory Track (works for all professions)
-  // Leverage expertise to advise others
+  // Path 5: Consulting/Advisory Track
   if (yearsOfExp >= 4) {
     paths.push({
       roleId: "consulting-track",
@@ -144,41 +112,24 @@ export function generateMockCareerPaths(
       description: `Apply your expertise to help multiple organizations solve complex problems. Build independent practice or join consulting firms.`,
       marketDemandScore: 80,
       industryAlignment: 88,
-      effortLevel: "Medium",
-      rewardPotential: "High",
-      reasoning: `Your ${yearsOfExp} years of hands-on experience combined with ${profile.strengthAreas[0]} make you a valuable consultant.`,
-      requiredSkills: [
-        "Subject Matter Expertise",
-        "Client Communication",
-        "Problem Analysis",
-        "Strategic Thinking",
-      ],
+      requiredSkills: ["Subject Matter Expertise", "Client Communication", "Problem Analysis", "Strategic Thinking"],
     });
   }
 
-  // Path 6: Entrepreneurship Track (works for all professions)
-  // Start own venture or business
+  // Path 6: Entrepreneurship Track
   if (yearsOfExp >= 3 && strengthCount >= 2) {
     const businessIdea = suggestBusinessIdea(currentRole, industryBg);
     paths.push({
       roleId: "entrepreneurship-track",
-      roleName: `Entrepreneur / Business Owner`,
+      roleName: "Entrepreneur / Business Owner",
       description: `Start your own ${businessIdea} leveraging your professional expertise and industry connections.`,
       marketDemandScore: 70,
       industryAlignment: 90,
-      effortLevel: "High",
-      rewardPotential: "High",
-      reasoning: `Your background in ${industryBg} combined with skills in ${profile.strengthAreas[0]} positions you well for entrepreneurship.`,
-      requiredSkills: [
-        "Business Development",
-        "Entrepreneurship",
-        "Financial Management",
-        "Risk Management",
-      ],
+      requiredSkills: ["Business Development", "Entrepreneurship", "Financial Management", "Risk Management"],
     });
   }
 
-  return paths.slice(0, 5); // Return max 5 paths
+  return paths.slice(0, 5);
 }
 
 /**
@@ -474,24 +425,6 @@ export function generateMockRoadmap(
     ],
   };
 }
-/**
- * Generate MINIMAL career paths (for carousel - fast loading)
- */
-export function generateMockCareerPathsMinimal(
-  profile: ResumeProfile
-): CareerPathMinimal[] {
-  const fullPaths = generateMockCareerPaths(profile);
-  // Convert full paths to minimal versions (just title, description, scores, skills)
-  return fullPaths.map(path => ({
-    roleId: path.roleId,
-    roleName: path.roleName,
-    description: path.description,
-    marketDemandScore: path.marketDemandScore,
-    industryAlignment: path.industryAlignment,
-    requiredSkills: path.requiredSkills,
-  }));
-}
-
 /**
  * Generate detailed info for a specific career path
  */

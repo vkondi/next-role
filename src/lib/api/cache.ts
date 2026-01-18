@@ -25,6 +25,13 @@ class ResponseCache {
   }
 
   get<T>(data: unknown): T | null {
+    const enableCaching = process.env.ENABLE_CACHING === "true";
+    
+    if (!enableCaching) {
+      log.debug("Cache disabled via ENABLE_CACHING environment variable");
+      return null;
+    }
+    
     const key = this.generateKey(data);
     const entry = this.cache.get(key);
 
@@ -44,6 +51,13 @@ class ResponseCache {
   }
 
   set<T>(data: unknown, value: T, ttl: number = this.defaultTTL): void {
+    const enableCaching = process.env.ENABLE_CACHING === "true";
+    
+    if (!enableCaching) {
+      log.debug("Cache disabled via ENABLE_CACHING environment variable");
+      return;
+    }
+    
     const key = this.generateKey(data);
     this.cache.set(key, {
       data: value,

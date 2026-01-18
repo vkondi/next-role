@@ -382,7 +382,8 @@ export default function UploadPageContent() {
                 </p>
                 <p className="text-small text-slate-600 mt-1">
                   You can edit these details if needed before proceeding. For
-                  this MVP, you can proceed directly to the analysis.
+                  this MVP, you can proceed directly to the analysis. If the details
+                  are not accurate, try switching to a different AI provider for better results.
                 </p>
               </div>
             </div>
