@@ -4,7 +4,13 @@
  */
 
 import Link from "next/link";
-import { ArrowRight, Sparkles, Target, BookOpen, TrendingUp } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkles,
+  Target,
+  BookOpen,
+  TrendingUp,
+} from "lucide-react";
 
 export default function Home() {
   const features = [
@@ -29,8 +35,7 @@ export default function Home() {
     {
       icon: TrendingUp,
       title: "Actionable Roadmap",
-      description:
-        "Month-by-month plan with concrete projects and milestones",
+      description: "Month-by-month plan with concrete projects and milestones",
     },
   ];
 
@@ -118,11 +123,11 @@ export default function Home() {
           <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
             <h3 className="heading-2">Not a Job Portal</h3>
             <p className="text-body text-slate-600">
-              NextRole is a <strong>career intelligence and planning tool</strong>
-              {" "}
-              designed for professionals who want clarity on their future. We&apos;re not
-              here to find you jobs&mdash;we&apos;re here to help you become the person who
-              naturally attracts the right opportunities.
+              NextRole is a{" "}
+              <strong>career intelligence and planning tool</strong> designed
+              for professionals who want clarity on their future. We&apos;re not
+              here to find you jobs&mdash;we&apos;re here to help you become the
+              person who naturally attracts the right opportunities.
             </p>
 
             <div className="space-y-3 sm:space-y-4">
@@ -135,7 +140,8 @@ export default function Home() {
                     Strategic Thinking
                   </p>
                   <p className="text-small text-slate-600">
-                    Guidance based on market demand, effort, and reward potential
+                    Guidance based on market demand, effort, and reward
+                    potential
                   </p>
                 </div>
               </div>
@@ -173,9 +179,7 @@ export default function Home() {
           <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-2xl p-6 sm:p-8 md:p-12 border border-emerald-200 flex flex-col items-center justify-center min-h-80 sm:min-h-96">
             <div className="text-center space-y-3 sm:space-y-4">
               <div className="text-5xl sm:text-6xl">🎯</div>
-              <p className="heading-3 text-slate-900">
-                Clarity Over Confusion
-              </p>
+              <p className="heading-3 text-slate-900">Clarity Over Confusion</p>
               <p className="text-body text-slate-600 max-w-sm text-sm sm:text-base">
                 Every professional deserves a clear, strategic plan for their
                 next move. That&apos;s what we provide.
@@ -192,24 +196,18 @@ export default function Home() {
             Ready to Plan Your Next Role?
           </h3>
           <p className="text-subtitle text-emerald-100 max-w-2xl mx-auto text-sm sm:text-base">
-            Upload your resume now and get your personalized career strategy
-            in minutes.
+            Upload your resume now and get your personalized career strategy in
+            minutes.
           </p>
-          <Link href="/upload" className="btn bg-white text-emerald-600 hover:bg-slate-100 btn-lg mx-auto">
+          <Link
+            href="/upload"
+            className="btn bg-white text-emerald-600 hover:bg-slate-100 btn-lg mx-auto"
+          >
             Get Started Now
             <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
           </Link>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 py-6 sm:py-8 bg-white">
-        <div className="container text-center text-small text-slate-600 px-3 sm:px-0">
-          <p>
-            © {new Date().getFullYear()} NextRole. Your career intelligence tool.
-          </p>
-        </div>
-      </footer>
     </main>
   );
 }
