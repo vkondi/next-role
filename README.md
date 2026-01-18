@@ -4,8 +4,6 @@
 
 A production-quality web application that helps professionals analyze their career path, discover strategic next moves, and execute a personalized 6-12 month career roadmap.
 
-> **Note:** Documentation has been reorganized for clarity. Use the table of contents below to navigate to relevant sections.
-
 ## Table of Contents
 
 - **[Getting Started](./docs/GETTING_STARTED.md)** - Installation, setup, and local development
