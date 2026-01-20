@@ -252,26 +252,27 @@ Retrieves sample resume content by ID.
 ---
 
 ### `POST /api/upload/parse-file`
-Parses PDF files and extracts text.
+Parses PDF, TXT, and DOCX files and extracts text.
 
 **Request:**
-Multipart form data with `file` field containing PDF
+Multipart form data with `file` field containing PDF, TXT, or DOCX file (max 2MB)
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "text": "string (extracted PDF text)",
+    "text": "string (extracted text)",
     "fileName": "string"
   }
 }
 ```
 
 **Description:**
-- Supports PDF file uploads
-- Extracts and cleans text using pdf2json
+- Supports PDF, TXT, and DOCX file uploads
+- Extracts and cleans text using pdf2json (PDF), TextDecoder (TXT), and mammoth (DOCX)
 - Handles special character spacing issues
+- Maximum file size: 2MB
 
 ---
 

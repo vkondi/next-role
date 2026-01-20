@@ -111,22 +111,23 @@ export default function UploadPageContent() {
     setFileError(null);
     setError(null);
 
-    // Validate file type (TXT and PDF supported)
-    const validTypes = ["text/plain", "application/pdf"];
+    // Validate file type (TXT, PDF, and DOCX supported)
+    const validTypes = ["text/plain", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
 
     const isTxtFile = file.name.endsWith(".txt");
     const isPdfFile = file.name.endsWith(".pdf");
+    const isDocxFile = file.name.endsWith(".docx");
 
-    if (!validTypes.includes(file.type) && !isTxtFile && !isPdfFile) {
-      setFileError("Please upload a TXT or PDF file");
+    if (!validTypes.includes(file.type) && !isTxtFile && !isPdfFile && !isDocxFile) {
+      setFileError("Please upload a TXT, PDF, or DOCX file");
       return;
     }
 
-    // Validate file size (max 10MB)
-    const maxFileSize = 10 * 1024 * 1024;
+    // Validate file size (max 2MB)
+    const maxFileSize = 2 * 1024 * 1024;
     if (file.size > maxFileSize) {
       setFileError(
-        "File size exceeds 10MB limit. Please choose a smaller file."
+        "File size exceeds 2MB limit. Please choose a smaller file."
       );
       return;
     }
@@ -623,14 +624,14 @@ export default function UploadPageContent() {
                           Choose a file to upload
                         </p>
                         <p className="text-xs sm:text-sm text-slate-600 mt-1">
-                          PDF or TXT format (max 10MB)
+                          PDF, TXT, or DOCX format (max 2MB)
                         </p>
                       </div>
                       <input
                         id="file-input"
                         ref={fileInputRef}
                         type="file"
-                        accept=".txt,.pdf,text/plain,application/pdf"
+                        accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         onChange={handleFileUpload}
                         disabled={loading}
                         className="hidden"

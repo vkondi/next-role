@@ -13,7 +13,7 @@ NextRole is in **active development** with MVP features fully implemented and te
 - [x] AI prompt modules with JSON output validation
 - [x] API route implementations with error handling
 - [x] Landing page with feature descriptions
-- [x] Resume upload page (text & PDF support)
+- [x] Resume upload page (text, PDF, and DOCX support)
 - [x] Career strategy dashboard
 - [x] Reusable UI components
   - CareerPathCard, CareerPathCardMinimal

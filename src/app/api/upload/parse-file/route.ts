@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import PDFParser from "pdf2json";
+import mammoth from "mammoth";
 import { getLogger } from "@/lib/api/logger";
 
 const log = getLogger("API:FileUpload");
@@ -85,6 +86,29 @@ async function extractPdfText(arrayBuffer: ArrayBuffer): Promise<string> {
   });
 }
 
+/**
+ * Extracts text from a DOCX file using mammoth
+ */
+async function extractDocxText(arrayBuffer: ArrayBuffer): Promise<string> {
+  try {
+    log.debug("Processing DOCX file");
+    const buffer = Buffer.from(arrayBuffer);
+    const result = await mammoth.extractRawText({ buffer });
+    const text = result.value;
+    
+    if (!text.trim()) {
+      throw new Error("No text content found in DOCX file");
+    }
+    
+    log.debug({ textLength: text.length }, "DOCX text extraction completed");
+    return text;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    log.error({ error: errorMsg }, "DOCX parsing failed");
+    throw new Error(`Failed to extract text from DOCX: ${errorMsg}`);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -100,8 +124,8 @@ export async function POST(request: NextRequest) {
 
     log.info({ fileName: file.name, fileSize: file.size, fileType: file.type }, "File upload received");
 
-    // Validate file size (max 10MB)
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    // Validate file size (max 2MB)
+    const maxFileSize = 2 * 1024 * 1024; // 2MB
     if (file.size > maxFileSize) {
       log.warn(
         { fileName: file.name, fileSize: file.size, maxSize: maxFileSize },
@@ -110,7 +134,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "File size exceeds maximum limit of 10MB",
+          error: "File size exceeds maximum limit of 2MB",
         },
         { status: 400 }
       );
@@ -127,12 +151,19 @@ export async function POST(request: NextRequest) {
       log.debug({ fileName: file.name }, "Processing PDF file");
       // Extract text from PDF files
       text = await extractPdfText(arrayBuffer);
+    } else if (
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.name.endsWith(".docx")
+    ) {
+      log.debug({ fileName: file.name }, "Processing DOCX file");
+      // Extract text from DOCX files
+      text = await extractDocxText(arrayBuffer);
     } else {
       log.warn({ fileName: file.name, fileType: file.type }, "File upload - unsupported file type");
       return NextResponse.json(
         {
           success: false,
-          error: "Unsupported file type. Please upload a TXT or PDF file.",
+          error: "Unsupported file type. Please upload a TXT, PDF, or DOCX file.",
         },
         { status: 400 }
       );

@@ -33,7 +33,7 @@ The output feels like guidance from a **career consultant + strategist**, not a 
 ### 2. **Resume Upload** (`/upload`)
 - **Two input methods:**
   - Paste resume text directly
-  - Upload PDF files (auto-extracts text)
+  - Upload PDF, TXT, or DOCX files (auto-extracts text)
 - **Real-time preview** of extracted profile:
   - Name, current role, years of experience
   - Tech stack (searchable/filterable)
