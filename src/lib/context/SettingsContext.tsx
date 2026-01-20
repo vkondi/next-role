@@ -15,7 +15,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [apiMode, setApiMode] = useState<ApiMode>("mock");
+  const [apiMode, setApiMode] = useState<ApiMode>("real");
   const [aiProvider, setAIProvider] = useState<AIProvider>("deepseek");
 
   return (
