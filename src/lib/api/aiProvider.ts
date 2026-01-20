@@ -1,5 +1,6 @@
 /** AI Provider selector - routes to Deepseek or Gemini based on configuration */
 
+import { TOKEN_CONFIG } from "../config/appConfig";
 import { callDeepseekAPI } from "./deepseek";
 import { callGeminiAPI } from "./gemini";
 import { getLogger } from "./logger";
@@ -10,7 +11,9 @@ const log = getLogger("API:ProviderSelector");
 export type AIProvider = "deepseek" | "gemini";
 
 // Server-side: read from environment variable (default fallback is gemini)
-const SERVER_AI_PROVIDER = (process.env.AI_PROVIDER || "gemini").toLowerCase() as AIProvider;
+const SERVER_AI_PROVIDER = (
+  process.env.AI_PROVIDER || "gemini"
+).toLowerCase() as AIProvider;
 
 // Client-side: provider is managed by SettingsContext and passed via request body
 // Server-side API routes use environment variable as fallback
@@ -22,14 +25,19 @@ export function getServerAIProvider(): AIProvider {
 
 /** Extract AI provider from request body or use server default */
 export function getAIProviderFromBody(body: any): AIProvider {
-  if (body?.aiProvider && (body.aiProvider === "deepseek" || body.aiProvider === "gemini")) {
+  if (
+    body?.aiProvider &&
+    (body.aiProvider === "deepseek" || body.aiProvider === "gemini")
+  ) {
     return body.aiProvider;
   }
   return getServerAIProvider();
 }
 
 /** Extract AI provider from request body with fallback to server default */
-export async function getAIProviderFromRequest(request: NextRequest): Promise<AIProvider> {
+export async function getAIProviderFromRequest(
+  request: NextRequest
+): Promise<AIProvider> {
   try {
     const body = await request.clone().json();
     return getAIProviderFromBody(body);
@@ -40,9 +48,13 @@ export async function getAIProviderFromRequest(request: NextRequest): Promise<AI
 }
 
 /** Call the specified AI provider */
-export async function callAI(provider: AIProvider, prompt: string, maxTokens: number = 1000): Promise<string> {
+export async function callAI(
+  provider: AIProvider,
+  prompt: string,
+  maxTokens: number = TOKEN_CONFIG.DEFAULT
+): Promise<string> {
   log.debug({ provider, maxTokens }, "Routing AI call to provider");
-  
+
   if (provider === "gemini") {
     return callGeminiAPI(prompt, maxTokens);
   } else if (provider === "deepseek") {

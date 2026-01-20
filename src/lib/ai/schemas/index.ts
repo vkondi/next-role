@@ -157,6 +157,7 @@ export type RoadmapPhase = z.infer<typeof RoadmapPhaseSchema>;
 
 /**
  * CareerRoadmap Schema - Complete career roadmap
+ * Supports dynamic phase count (2-5 phases) based on gap severity and timeline
  */
 export const CareerRoadmapSchema = z.object({
   careerPathId: z.string().describe("ID of the related career path"),
@@ -168,8 +169,9 @@ export const CareerRoadmapSchema = z.object({
     .describe("Total timeline in months"),
   phases: z
     .array(RoadmapPhaseSchema)
-    .min(1)
-    .describe("Phases of the roadmap"),
+    .min(2)
+    .max(5)
+    .describe("Phases of the roadmap (2-5 phases based on complexity)"),
   successMetrics: z
     .array(z.string())
     .describe("Metrics to measure success"),

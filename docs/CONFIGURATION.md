@@ -105,6 +105,34 @@ CLOUDFLARE_WEB_ANALYTICS_TOKEN=your-token
 - **Purpose:** Cloudflare Web Analytics token for tracking
 - **Notes:** Optional for MVP
 
+### Token Configuration
+
+Control token limits for each AI operation to optimize API costs and handle different complexity levels:
+
+```bash
+# Default token limit (fallback for all operations)
+MAX_TOKENS_DEFAULT=1000
+
+# Operation-specific token limits
+MAX_TOKENS_RESUME=1200              # Resume interpretation
+MAX_TOKENS_CAREER_PATH=1500         # Career path generation
+MAX_TOKENS_SKILL_GAP=1100           # Skill gap analysis
+MAX_TOKENS_ROADMAP=1800             # Career roadmap (increased for complexity)
+```
+
+**Why Different Limits?**
+- Resume interpretation: Simple extraction → 1000 tokens usually sufficient
+- Career path generation: Requires analysis → 1000-1500 tokens recommended
+- Skill gap analysis: Moderate complexity → 1000-1500 tokens recommended
+- Roadmap generation: High complexity (2-5 phases with details) → 1800+ tokens recommended
+
+**Token Tuning Tips:**
+- Start with defaults and monitor AI responses
+- If responses are truncated/incomplete: increase relevant MAX_TOKENS variable by 200-300
+- Monitor API costs and adjust down if responses are verbose
+- Deepseek providers benefit from higher limits (they charge per token)
+- Gemini's free tier has monthly token quota to consider
+
 ### Minimal Setup
 
 For local development with **mock data only** (no API calls needed):

@@ -36,3 +36,11 @@ export function calculateTimelineMonths(
 export function validateTimeline(months: number): number {
   return Math.max(TIMELINE_CONFIG.MIN_TIMELINE_MONTHS, Math.min(months, TIMELINE_CONFIG.MAX_TIMELINE_MONTHS));
 }
+
+/** Formats month range for display (e.g., "Month 1-3" or "Month 6") */
+export function formatMonthRange(startMonth: number, endMonth: number): string {
+  if (startMonth === endMonth) {
+    return `Month ${startMonth}`;
+  }
+  return `Month ${startMonth}-${endMonth}`;
+}

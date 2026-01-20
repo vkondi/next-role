@@ -1,6 +1,6 @@
 /**
  * Roadmap Generator Prompt Module
- * Generates month-by-month career roadmap
+ * Generates month-by-month career roadmap with dynamic phase count (2-5 phases)
  */
 
 import { CareerRoadmapSchema } from "../schemas";
@@ -12,12 +12,46 @@ import type {
 } from "../schemas";
 import { callAI } from "@/lib/api/aiProvider";
 import type { AIProvider } from "@/lib/api/aiProvider";
+import { ROADMAP_CONFIG, TOKEN_CONFIG } from "@/lib/config/appConfig";
+import { getLogger } from "@/lib/api/logger";
+import { formatMonthRange } from "@/lib/utils/timelineUtils";
 import {
   removeMarkdownBlocks,
   extractStringField,
   extractNumberField,
   repairTruncatedJSON,
 } from "@/lib/api/jsonRecovery";
+
+const log = getLogger("RoadmapGenerator");
+
+/**
+ * Calculate recommended number of phases based on gap severity and timeline
+ * This helps guide the AI to choose appropriate phase count
+ */
+function getRecommendedPhaseCount(
+  overallGapSeverity: string,
+  timelineMonths: number
+): number {
+  const severity = overallGapSeverity as keyof typeof ROADMAP_CONFIG.PHASE_COUNT_BY_SEVERITY;
+  const severityConfig = ROADMAP_CONFIG.PHASE_COUNT_BY_SEVERITY[severity];
+  
+  if (!severityConfig) {
+    // Default to Medium if severity is not recognized
+    return ROADMAP_CONFIG.PHASE_COUNT_BY_SEVERITY.Medium.medium;
+  }
+  
+  // Determine timeline category
+  const SHORT_MAX = ROADMAP_CONFIG.TIMELINE_BREAKPOINTS.SHORT_MAX;
+  const MEDIUM_MAX = ROADMAP_CONFIG.TIMELINE_BREAKPOINTS.MEDIUM_MAX;
+  
+  if (timelineMonths <= SHORT_MAX) {
+    return severityConfig.short;
+  } else if (timelineMonths <= MEDIUM_MAX) {
+    return severityConfig.medium;
+  } else {
+    return severityConfig.long;
+  }
+}
 
 export function createRoadmapGeneratorPrompt(
   resumeProfile: ResumeProfile,
@@ -31,40 +65,51 @@ export function createRoadmapGeneratorPrompt(
     .map((sg) => sg.skillName)
     .join(", ");
 
-  return `Create 2-phase ${timelineMonths}-month roadmap: ${careerPath.roleName}
-Current: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience}y)
-Skills: ${criticalSkills}
-Severity: ${skillGapAnalysis.overallGapSeverity} (EXACT: Low|Medium|High - never Very High)
+  const recommendedPhases = getRecommendedPhaseCount(
+    skillGapAnalysis.overallGapSeverity,
+    timelineMonths
+  );
 
-Return ONLY valid JSON:
+  // Calculate months per phase
+  const monthsPerPhase = Math.ceil(timelineMonths / recommendedPhases);
+
+  return `Create a ${timelineMonths}-month career roadmap to transition to: ${careerPath.roleName}
+Current role: ${resumeProfile.currentRole} (${resumeProfile.yearsOfExperience} years)
+Gap severity: ${skillGapAnalysis.overallGapSeverity}
+Critical skills to develop: ${criticalSkills}
+
+Generate exactly ${recommendedPhases} phases (MUST be ${recommendedPhases} phases):
+- Each phase covers approximately ${monthsPerPhase} months
+- Each phase must have all required fields with multiple items where specified
+- Use realistic, actionable content for each phase
+- IMPORTANT: Each phase MUST have 1-3 milestones and 1-3 action items (not just 1)
+
+RESPOND WITH ONLY VALID JSON (no markdown, no text before/after):
 {
   "careerPathId": "${careerPath.roleId}",
   "careerPathName": "${careerPath.roleName}",
   "timelineMonths": ${timelineMonths},
   "phases": [
-    {
-      "phaseNumber": 1,
-      "duration": "Month 1-${Math.ceil(timelineMonths / 2)}",
-      "skillsFocus": ["skill1", "skill2"],
-      "learningDirection": "Build foundation",
-      "projectIdeas": ["1-2 projects"],
-      "milestones": ["Course + basic project"],
-      "actionItems": ["Learn and build"]
-    },
-    {
-      "phaseNumber": 2,
-      "duration": "Month ${Math.ceil(timelineMonths / 2) + 1}-${timelineMonths}",
-      "skillsFocus": ["skill2", "skill3"],
-      "learningDirection": "Gain expertise",
-      "projectIdeas": ["Advanced project"],
-      "milestones": ["Portfolio ready"],
-      "actionItems": ["Refine and prepare"]
-    }
+${Array.from({ length: recommendedPhases }, (_, i) => {
+  const startMonth = i * monthsPerPhase + 1;
+  const endMonth = i === recommendedPhases - 1 ? timelineMonths : (i + 1) * monthsPerPhase;
+  const durationStr = formatMonthRange(startMonth, endMonth);
+  return `    {
+      "phaseNumber": ${i + 1},
+      "duration": "${durationStr}",
+      "skillsFocus": ["${['foundational skill', 'core framework', 'advanced technique', 'specialization', 'mastery'][i] || 'key skill'}"],
+      "learningDirection": "Brief description of learning goals",
+      "projectIdeas": ["Practical project aligned with phase goals"],
+      "milestones": ["Milestone 1", "Milestone 2"],
+      "actionItems": ["Action 1", "Action 2"]
+    }`;
+}).join(',')}
   ],
-  "successMetrics": ["Portfolio"],
-  "riskFactors": ["Time"]
+  "successMetrics": ["Portfolio completion", "Technical proficiency", "Interview readiness"],
+  "riskFactors": ["Time commitment", "Learning complexity"]
 }`;
 }
+
 
 /**
  * Recover roadmap object from truncated/malformed AI response
@@ -180,6 +225,7 @@ function tryRecoverRoadmap(text: string): Record<string, any> | null {
 /**
  * Parses and validates the AI response for roadmap generation
  * Includes JSON repair for truncated responses
+ * Handles variable phase count (2-5 phases)
  */
 export async function parseRoadmapGeneratorResponse(
   responseText: string
@@ -192,50 +238,44 @@ export async function parseRoadmapGeneratorResponse(
     }
 
     let parsed: any;
+    
     try {
       parsed = JSON.parse(cleanedText);
+      log.debug({ phasesCount: parsed.phases?.length }, "AI response parsed successfully");
     } catch (jsonError) {
+      log.debug("JSON parse failed, attempting repair");
       // First, try to repair truncated JSON by adding missing braces/brackets
       try {
         const repaired = repairTruncatedJSON(cleanedText);
         parsed = JSON.parse(repaired);
+        log.debug({ phasesCount: parsed.phases?.length }, "AI response repaired and parsed");
       } catch {
         // If repair fails, try recovery via regex extraction
+        log.debug("Repair failed, attempting recovery via regex");
         const recovered = tryRecoverRoadmap(cleanedText);
         if (!recovered) {
+          log.warn("Recovery failed");
           throw jsonError;
         }
         parsed = recovered;
+        log.debug({ phasesCount: parsed.phases?.length }, "AI response recovered via regex");
       }
     }
     
     // Ensure required arrays have defaults if missing from recovery
     if (!parsed.phases || !Array.isArray(parsed.phases) || parsed.phases.length === 0) {
-      // Create a default phase if none exist
-      // Note: This is a fallback when AI response fails - ideally this shouldn't happen
+      log.warn({ responseText: responseText.substring(0, 200) }, "No phases in AI response, using fallback");
+      // Create default phases based on timeline - this is a fallback when AI response fails
+      // Mark that we used fallback so we can notify the user
       const timelineMonths = parsed.timelineMonths || 6;
-      const halfway = Math.ceil(timelineMonths / 2);
+      const recommendedPhases = getRecommendedPhaseCount(
+        parsed.gapSeverity || "Medium",
+        timelineMonths
+      );
       
-      parsed.phases = [
-        {
-          phaseNumber: 1,
-          duration: `Month 1-${halfway}`,
-          skillsFocus: ["Core skill development"],
-          learningDirection: "Build foundation in target domain",
-          projectIdeas: ["Foundational hands-on project"],
-          milestones: ["Complete foundational learning", "Build first project"],
-          actionItems: ["Study key concepts", "Start foundational project"],
-        },
-        {
-          phaseNumber: 2,
-          duration: `Month ${halfway + 1}-${timelineMonths}`,
-          skillsFocus: ["Advanced skill development"],
-          learningDirection: "Deepen expertise and prepare for transition",
-          projectIdeas: ["Advanced portfolio project"],
-          milestones: ["Complete advanced learning", "Polish portfolio"],
-          actionItems: ["Advance skills", "Refine projects for portfolio"],
-        },
-      ];
+      parsed.phases = generateDefaultPhases(timelineMonths, recommendedPhases);
+      parsed._usedFallback = true; // Mark that fallback was used
+      log.warn({ phaseCount: parsed.phases.length }, "Generated default phases as fallback");
     }
     if (!parsed.successMetrics || !Array.isArray(parsed.successMetrics)) {
       parsed.successMetrics = [
@@ -254,8 +294,17 @@ export async function parseRoadmapGeneratorResponse(
     
     // Validate against schema
     const validated = CareerRoadmapSchema.parse(parsed);
-    return validated;
+    
+    // Preserve fallback flag in the validated roadmap
+    const result = validated as any;
+    if (parsed._usedFallback) {
+      result._usedFallback = true;
+    }
+    
+    log.info({ phaseCount: validated.phases.length, usedFallback: !!result._usedFallback }, "Roadmap parsed and validated");
+    return result;
   } catch (error) {
+    log.error({ error: error instanceof Error ? error.message : String(error) }, "Failed to parse roadmap response");
     throw new Error(
       `Failed to parse roadmap generator response: ${error instanceof Error ? error.message : String(error)}`
     );
@@ -263,7 +312,47 @@ export async function parseRoadmapGeneratorResponse(
 }
 
 /**
+ * Generate default phases as fallback when AI response fails
+ * Creates N evenly-spaced phases based on timeline
+ */
+function generateDefaultPhases(timelineMonths: number, phaseCount: number): any[] {
+  const monthsPerPhase = Math.floor(timelineMonths / phaseCount);
+  const phases = [];
+  
+  for (let i = 0; i < phaseCount; i++) {
+    const startMonth = i * monthsPerPhase + 1;
+    const endMonth = i === phaseCount - 1 
+      ? timelineMonths 
+      : (i + 1) * monthsPerPhase;
+    
+    const phaseDescriptions = [
+      { direction: "Build foundational skills", focus: "Core fundamentals" },
+      { direction: "Develop intermediate expertise", focus: "Practical application" },
+      { direction: "Advance specialized skills", focus: "Advanced concepts" },
+      { direction: "Prepare for transition", focus: "Portfolio and preparation" },
+      { direction: "Final specialization", focus: "Market readiness" },
+    ];
+    
+    const desc = phaseDescriptions[i] || phaseDescriptions[0];
+    
+    phases.push({
+      phaseNumber: i + 1,
+      duration: `Month ${startMonth}-${endMonth}`,
+      skillsFocus: [desc.focus],
+      learningDirection: desc.direction,
+      projectIdeas: [`Phase ${i + 1} project`],
+      milestones: [`Complete phase ${i + 1}`],
+      actionItems: [`Work on phase ${i + 1} objectives`],
+    });
+  }
+  
+  return phases;
+}
+
+/**
  * Roadmap Generator function
+ * Generates N phases (2-5) based on gap severity and timeline
+ * Max tokens: configurable via MAX_TOKENS_ROADMAP env variable (default: 1800)
  */
 export async function generateRoadmap(
   resumeProfile: ResumeProfile,
@@ -279,7 +368,7 @@ export async function generateRoadmap(
     timelineMonths
   );
 
-  const response = await callAI(aiProvider, prompt, 1500);
+  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.ROADMAP_GENERATOR);
   const roadmap = await parseRoadmapGeneratorResponse(response);
 
   return roadmap;
