@@ -60,11 +60,21 @@ const handler = async (request: NextRequest) => {
       try {
         // Extract provider directly from the parsed body
         const aiProvider = getAIProviderFromBody(body);
+        const startTime = Date.now();
+        
         log.info(
           { aiProvider, timelineMonths, role: careerPath.roleName },
           "Generating roadmap with AI provider"
         );
         roadmap = await generateRoadmap(resumeProfile, careerPath, skillGapAnalysis, timelineMonths, aiProvider);
+        
+        const responseTime = Date.now() - startTime;
+        const usedFallback = (roadmap as any)._usedFallback || false;
+        
+        log.info(
+          { responseTime, phases: roadmap.phases.length, usedFallback, aiProvider },
+          "Roadmap generated successfully"
+        );
         
         const skillKey = skillGapAnalysis.skillGaps
           .filter((sg) => sg.importance === "High")
@@ -90,10 +100,12 @@ const handler = async (request: NextRequest) => {
       }
     }
 
-    log.info({ phases: roadmap.phases.length }, "Roadmap generated successfully");
+    const usedFallback = (roadmap as any)._usedFallback || false;
+    
     return NextResponse.json({
       success: true,
       data: roadmap,
+      meta: { usedFallback },
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

@@ -27,7 +27,7 @@ NextRole is in **active development** with MVP features fully implemented and te
 - [x] Resume interpreter (text extraction)
 - [x] Career path generator (minimal and detailed)
 - [x] Skill gap analyzer
-- [x] Roadmap generator (dynamic timeline)
+- [x] Roadmap generator (dynamic timeline with 2-5 phases)
 - [x] Google Gemini API integration (primary)
 - [x] Deepseek API integration (alternative)
 - [x] AI provider selector and fallback logic

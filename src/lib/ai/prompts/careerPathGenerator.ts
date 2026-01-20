@@ -6,6 +6,7 @@ import { z } from "zod";
 import { callAI } from "@/lib/api/aiProvider";
 import { getLogger } from "@/lib/api/logger";
 import type { AIProvider } from "@/lib/api/aiProvider";
+import { TOKEN_CONFIG } from "@/lib/config/appConfig";
 import {
   removeMarkdownBlocks,
   normalizeEnumValue,
@@ -294,7 +295,7 @@ export async function generateCareerPathsMinimal(
     "Generating minimal career paths"
   );
   const prompt = createCareerPathMinimalPrompt(resumeProfile, numberOfPaths);
-  const response = await callAI(aiProvider, prompt, 1500);
+  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.CAREER_PATH_GENERATOR);
   const paths = await parseCareerPathMinimalResponse(response);
   log.info({ count: paths.length }, "Career paths generated successfully");
   return paths;
@@ -316,7 +317,7 @@ export async function generateCareerPathDetails(
     resumeProfile,
     pathBasic.roleName
   );
-  const response = await callAI(aiProvider, prompt, 1000);
+  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.CAREER_PATH_GENERATOR);
   const details = await parseCareerPathDetailsResponse(response);
   log.info({ role: pathBasic.roleName }, "Career path details generated");
   return {

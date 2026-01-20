@@ -8,6 +8,7 @@ import type {
 } from "../schemas";
 import { callAI } from "@/lib/api/aiProvider";
 import type { AIProvider } from "@/lib/api/aiProvider";
+import { TOKEN_CONFIG } from "@/lib/config/appConfig";
 import {
   removeMarkdownBlocks,
   extractStringField,
@@ -220,7 +221,7 @@ export async function analyzeSkillGaps(
   aiProvider: AIProvider = "deepseek"
 ): Promise<SkillGapAnalysis> {
   const prompt = createSkillGapAnalyzerPrompt(resumeProfile, careerPath);
-  const response = await callAI(aiProvider, prompt, 1100);
+  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.SKILL_GAP_ANALYZER);
   const analysis = await parseSkillGapAnalyzerResponse(response);
   return analysis;
 }

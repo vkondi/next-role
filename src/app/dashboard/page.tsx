@@ -45,6 +45,7 @@ export default function DashboardPage() {
   const [skillGapLoading, setSkillGapLoading] = useState(false);
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fallbackNotification, setFallbackNotification] = useState<boolean>(false);
 
   // Fetch MINIMAL career paths (fast, for carousel)
   const fetchCareerPathsMinimal = useCallback(
@@ -114,6 +115,7 @@ export default function DashboardPage() {
       gaps: SkillGapAnalysis
     ) => {
       setRoadmapLoading(true);
+      setFallbackNotification(false);
       try {
         // Calculate timeline dynamically based on skill gap analysis
         const timelineMonths = calculateTimelineMonths(
@@ -122,7 +124,7 @@ export default function DashboardPage() {
         );
 
         const url = buildApiUrl("/api/roadmap/generate", mode === "mock");
-        const roadmapData = await apiRequest<CareerRoadmap>(url, {
+        const response = await apiRequest<any>(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -133,7 +135,13 @@ export default function DashboardPage() {
             aiProvider: provider,
           }),
         });
-        setRoadmap(roadmapData);
+        
+        // Check if fallback was used
+        if (response.meta?.usedFallback) {
+          setFallbackNotification(true);
+        }
+        
+        setRoadmap(response);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
@@ -295,6 +303,21 @@ export default function DashboardPage() {
         {mode === "mock" && (
           <div className="px-2 sm:px-0">
             <MockModeToast />
+          </div>
+        )}
+
+        {/* Fallback Notification - Show when roadmap used fallback */}
+        {fallbackNotification && (
+          <div className="px-2 sm:px-0">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 sm:p-5 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-orange-900 mb-1">Roadmap Generated with Standard Template</p>
+                <p className="text-xs sm:text-sm text-orange-700">
+                  The AI had trouble generating a customized roadmap. We've provided you with a standard template that you can customize based on your specific needs.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

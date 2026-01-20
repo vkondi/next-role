@@ -102,10 +102,21 @@ See [CONFIGURATION.md - AI Provider Configuration](CONFIGURATION.md#ai-provider-
 - Time estimates for skill development
 
 #### 4. **Roadmap Generator** (`lib/ai/prompts/roadmapGenerator.ts`)
-- Month-by-month transition plan
+- Dynamic month-by-month transition plan (2-5 phases)
 - Customizable timeline (3-24 months)
+- **Dynamic Phase Count:** AI decides phases (2-5) based on:
+  - Gap severity (Low/Medium/High)
+  - Timeline duration
+  - Recommended ranges:
+    - **2 phases:** Quick transitions with foundation + intermediate focus
+    - **3 phases:** Moderate timelines with gradual skill progression
+    - **4 phases:** Longer timelines allowing specialization
+    - **5 phases:** Extended timelines with detailed progression and preparation
 - Timeline buffer based on skill gap severity
 - Actionable projects, milestones, success metrics, risk factors
+- **Max tokens:** 1800 (configurable via MAX_TOKENS_ROADMAP env variable)
+- Simplified, deterministic prompt format ensures consistent JSON output
+- Fallback mechanism: Falls back to template phases if AI response fails
 
 **All modules use:**
 - Zod schema enforcement for type safety
@@ -166,6 +177,28 @@ See [CONFIGURATION.md - Logging Configuration](../CONFIGURATION.md#logging-confi
 - Easy to add more providers by implementing same interface
 - Client can override server default via request body
 - Graceful fallback if primary provider fails
+
+### Dynamic Roadmap Phase Count
+Intelligent phase count determination based on gap severity and timeline:
+- **Configuration:** `src/lib/config/appConfig.ts` (ROADMAP_CONFIG)
+- **Logic:** `src/lib/ai/prompts/roadmapGenerator.ts` (getRecommendedPhaseCount)
+- **Min/Max:** 2-5 phases per CareerRoadmapSchema
+- **Decision factors:**
+  - **Gap Severity:** Low → fewer phases, High → more phases
+  - **Timeline:** Short (3-6mo) → fewer phases, Long (13+mo) → more phases
+  - **AI flexibility:** AI can adjust within 2-5 range based on situation
+- **Benefits:**
+  - Adapts to user's specific needs
+  - Shorter transitions = quicker plans
+  - Longer timelines = gradual, detailed progression
+  - Maintains consistency via configuration
+
+### Roadmap Generation
+Roadmap generation features:
+- **Prompt Design:** Simplified, deterministic prompt format for reliable JSON output
+- **Token Configuration:** 1800 tokens (configurable via MAX_TOKENS_ROADMAP env variable)
+- **Fallback Handling:** System gracefully falls back to template phases when AI response fails
+- **Logging:** Debug logging available via `LOG_LEVEL=debug` for troubleshooting response parsing
 
 ### Modular Prompt System
 Each AI task isolated in its own module:
