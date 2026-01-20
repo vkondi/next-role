@@ -5,26 +5,76 @@ import { getLogger } from "@/lib/api/logger";
 
 const log = getLogger("API:FileUpload");
 
-/** Cleans PDF extracted text with spaces between characters */
+/** Cleans PDF extracted text with intelligent space restoration and structure preservation */
 function cleanPdfText(rawText: string): string {
   let text = rawText;
 
-  // Remove spaces between single chars (e.g., "e x p e r i e n c e" -> "experience")
-  text = text.replace(/([a-zA-Z0-9])\s+([a-zA-Z0-9])\s+/g, (_match, char1, char2) => {
-    return char1 + char2;
-  });
+  // Step 1: Remove excessive spaces between single characters
+  // This handles "e x p e r i e n c e" -> "experience" while being conservative
+  text = text.replace(/([a-zA-Z])(\s{1,2})([a-zA-Z])(\s{1,2})([a-zA-Z])/g, "$1$3$5");
   
-  // Keep removing spaces between chars until stabilized
+  // Iteratively apply character-level despacification
   let prevText = "";
-  while (prevText !== text) {
+  let iterations = 0;
+  while (prevText !== text && iterations < 3) {
     prevText = text;
-    text = text.replace(/([a-zA-Z0-9])\s+([a-zA-Z0-9])/g, "$1$2");
+    // Remove 1-2 spaces between lowercase letter and lowercase letter
+    text = text.replace(/([a-z])(\s{1,2})([a-z])/g, "$1$3");
+    iterations++;
   }
 
-  // Normalize whitespace
-  text = text.replace(/\s+/g, " ").trim();
+  // Step 2: Add space after common separators if missing
+  // Fix patterns like "Pune,India" -> "Pune, India"
+  text = text.replace(/([a-zA-Z0-9]),([a-zA-Z])/g, "$1, $2");
+  // Fix patterns like "India|linkedin" -> "India | linkedin"
+  text = text.replace(/([a-zA-Z0-9])\|([a-zA-Z])/g, "$1 | $2");
 
-  return text;
+  // Step 3: Add space before common connectors if missing
+  // "Feb2024" -> "Feb 2024"
+  text = text.replace(/([a-zA-Z])(\d{4})/g, "$1 $2");
+  // "2024–Present" or "2024 – Present"
+  text = text.replace(/(\d{4})(\s*[–—-]\s*)([a-zA-Z])/g, "$1 – $3");
+
+  // Step 4: Restore line breaks at major section breaks
+  // Look for patterns like "Section TitleSub Item" and add breaks
+  text = text.replace(/([a-z])([A-Z][a-z]+)(Skills|Experience|Education|Projects|Professional|Technical|Cloud|Frontend|Backend|Databases)/g, "$1\n$2$3");
+
+  // Step 5: Separate common resume section headers with newlines
+  const sectionHeaders = [
+    "Technical Skills",
+    "Professional Experience",
+    "Projects",
+    "Education",
+    "Certifications",
+    "Languages",
+    "Additional Skills",
+    "Core Competencies",
+    "Key Achievements"
+  ];
+  
+  sectionHeaders.forEach(header => {
+    const escapedHeader = header.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    text = text.replace(new RegExp(escapedHeader, "gi"), "\n" + header + "\n");
+  });
+
+  // Step 6: Add line breaks before job titles/dates
+  // Pattern: "CompanyLocation | Date – Date" 
+  text = text.replace(/([a-zA-Z0-9])\s{0,1}(\|)\s{0,1}([A-Z][a-z]{2}\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/g, "$1 $2 $3");
+  text = text.replace(/([A-Z][a-z]{2}\d{4}\s*(?:–|—|-)\s*(?:Present|[A-Z][a-z]{2}\d{4}))/g, "\n$1\n");
+
+  // Step 7: Normalize whitespace
+  // Replace multiple spaces with single space
+  text = text.replace(/[ \t]+/g, " ");
+  // Replace multiple newlines with single newline
+  text = text.replace(/\n\s*\n/g, "\n");
+  // Clean up leading/trailing whitespace
+  text = text
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .join("\n");
+
+  return text.trim();
 }
 
 /**
