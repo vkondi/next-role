@@ -8,10 +8,48 @@ import { ResumeProvider } from '@/lib/context/ResumeContext';
 import Footer from '@/components/Footer';
 import './globals.css';
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || 'https://my-next-role.vercel.app';
+const siteName = 'NextRole';
+const siteDescription =
+  'AI-powered career strategy copilot that analyzes your resume, generates personalized career paths, identifies skill gaps, and creates actionable month-by-month roadmaps for your next role.';
+
 export const metadata: Metadata = {
-  title: 'NextRole - Your Next Role, Planned with Clarity',
-  description:
-    'A career strategy copilot that analyzes your resume, simulates career paths, and generates actionable career roadmaps.',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'NextRole - AI Career Strategy Copilot',
+    template: '%s | NextRole',
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  authors: [{ name: siteName }],
+  generator: 'Next.js',
+  keywords: [
+    'career planning',
+    'AI career coach',
+    'resume analysis',
+    'skill gap analysis',
+    'career roadmap',
+    'career development',
+    'career path',
+    'job search',
+    'professional development',
+    'career strategy',
+  ],
+  referrer: 'origin-when-cross-origin',
+  creator: siteName,
+  publisher: siteName,
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -19,8 +57,45 @@ export const metadata: Metadata = {
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
     apple: '/apple-touch-icon.png',
+    other: [
+      {
+        rel: 'android-chrome-192x192',
+        url: '/android-chrome-192x192.png',
+      },
+      {
+        rel: 'android-chrome-512x512',
+        url: '/android-chrome-512x512.png',
+      },
+    ],
   },
   manifest: '/site.webmanifest',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: siteUrl,
+    siteName: siteName,
+    title: 'NextRole - AI Career Strategy Copilot',
+    description: siteDescription,
+    images: [
+      {
+        url: `${siteUrl}/android-chrome-512x512.png`,
+        width: 512,
+        height: 512,
+        alt: 'NextRole Logo',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'NextRole - AI Career Strategy Copilot',
+    description: siteDescription,
+    images: [`${siteUrl}/android-chrome-512x512.png`],
+    creator: '@nextrole',
+  },
+  alternates: {
+    canonical: siteUrl,
+  },
+  category: 'technology',
 };
 
 export default function RootLayout({

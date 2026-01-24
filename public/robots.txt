@@ -1,0 +1,7 @@
+# NextRole - Robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://my-next-role.vercel.app/sitemap.xml

@@ -13,51 +13,10 @@
 - **Logging:** Pino 10.1 with Pino Pretty formatter
 - **File Processing:** pdf2json 4.0 (PDF text extraction)
 - **HTTP Client:** Axios 1.7 (for API calls)
-- **State Management:** React Context API + localStorage (MVP)
+- **State Management:** React Context API (MVP)
 - **Auth:** None (MVP)
-- **Database:** None (in-memory/localStorage for MVP)
+- **Database:** None
 
-## Project Structure
-
-```
-src/
-├── app/                          # Next.js App Router
-│   ├── page.tsx                 # Landing page
-│   ├── layout.tsx               # Root layout
-│   ├── globals.css              # Global styles
-│   ├── upload/
-│   │   └── page.tsx             # Resume upload page
-│   ├── dashboard/
-│   │   └── page.tsx             # Career strategy dashboard (main)
-│   └── api/                     # API routes
-│       ├── resume/
-│       │   └── interpret/route.ts
-│       ├── career-paths/
-│       │   └── generate/route.ts
-│       ├── skill-gap/
-│       │   └── analyze/route.ts
-│       └── roadmap/
-│           └── generate/route.ts
-├── components/                   # Reusable UI components
-│   ├── CareerPathCard.tsx       # Career path display card
-│   ├── SkillGapChart.tsx        # Bar chart for skill gaps
-│   ├── RoadmapTimeline.tsx      # Timeline visualization
-│   └── index.ts                 # Component exports
-├── lib/                         # Utilities and logic
-│   ├── types/
-│   │   └── index.ts             # Core TypeScript types
-│   └── ai/
-│       ├── prompts/             # AI prompt modules
-│       │   ├── resumeInterpreter.ts
-│       │   ├── careerPathGenerator.ts
-│       │   ├── skillGapAnalyzer.ts
-│       │   ├── roadmapGenerator.ts
-│       │   └── index.ts
-│       └── schemas/             # Zod validation schemas
-│           └── index.ts
-└── data/
-    └── samples.ts               # Sample mock data
-```
 
 ## AI Architecture
 
@@ -68,11 +27,9 @@ All AI functionality is **modular** and **reusable**, with support for multiple 
 1. **Google Gemini** (Default)
    - Model: `gemini-3-flash-preview`
    - File: `src/lib/api/gemini.ts`
-   - Fully integrated and tested
 
 2. **Deepseek API** (Alternative)
    - File: `src/lib/api/deepseek.ts`
-   - Can be set via `AI_PROVIDER` env variable or request body
 
 **Provider Selection Logic:**
 - Server default: Read from `AI_PROVIDER` environment variable (defaults to "gemini")
@@ -142,22 +99,11 @@ Each AI prompt type has a dedicated system message that defines the AI's role an
 - Easy to update and maintain
 - Type-safe prompt type enforcement
 
-### Response Format Configuration
-- **Deepseek:** Uses JSON mode via `response_format: { type: "json_object" }`
-  - Guarantees valid JSON output
-  - Reduces parsing errors by ~80%
-  - Native API support for JSON-only responses
-- **Gemini:** Relies on prompt instructions for JSON output
-  - JSON Recovery mechanisms handle edge cases
-  - Same effective guarantee through validation
-
-### Temperature Configuration
-- **All Models:** Temperature = 0.01 (deterministic outputs)
-  - Deepseek: Uses fixed 0.01 for consistent JSON extraction
-  - Gemini: Uses fixed 0.01 for all models (2.5 and 3.x) to ensure deterministic JSON output
-  - Optimal for structured data extraction and analysis tasks
-  - Ensures consistent, reproducible JSON responses
-  - Prevents JSON truncation or instability
+### Response Format
+- **Temperature:** 0.01 for both providers (deterministic outputs)
+- **Deepseek:** Native JSON mode via `response_format: { type: "json_object" }`
+- **Gemini:** JSON output via prompt instructions + JSON recovery fallback
+- **Validation:** All responses validated with Zod schemas
 
 ### Supporting Infrastructure
 
@@ -176,7 +122,7 @@ Each AI prompt type has a dedicated system message that defines the AI's role an
 - SHA256 hash-based cache keys
 - Configurable via `ENABLE_CACHING` env variable
 
-See [CONFIGURATION.md - Caching Configuration](../CONFIGURATION.md#caching-configuration) for detailed caching information.
+See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastructure-configuration) for detailed caching information.
 
 **Rate Limiter** (`src/lib/api/rateLimiter.ts`)
 - 5 requests/day per IP address
@@ -184,15 +130,13 @@ See [CONFIGURATION.md - Caching Configuration](../CONFIGURATION.md#caching-confi
 - Skips rate limiting for localhost (development)
 - Configurable via `ENABLE_RATE_LIMITER` env variable
 
-See [CONFIGURATION.md - Rate Limiting Configuration](../CONFIGURATION.md#rate-limiting-configuration) for detailed rate limiting information.
+See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastructure-configuration) for detailed rate limiting information.
 
 **Logger** (`src/lib/api/logger.ts`)
 - Pino-based structured logging
 - Log level configurable via `LOG_LEVEL` env variable
-- Instance-based naming for tracking
-- Pretty-printed output in development
 
-See [CONFIGURATION.md - Logging Configuration](../CONFIGURATION.md#logging-configuration) for detailed logging setup and log level information.
+See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastructure-configuration) for detailed logging setup and log level information.
 
 ## Code Quality Standards
 
@@ -201,6 +145,9 @@ See [CONFIGURATION.md - Logging Configuration](../CONFIGURATION.md#logging-confi
 - **Type Safety:** No `any` types, strict null checks
 - **Styling:** Consistent Tailwind CSS classes with clsx/tailwind-merge
 - **Components:** Functional React components with hooks only
+  - Client components (using hooks/browser APIs): Marked with `'use client'` directive
+  - Server components (default): No client-side JavaScript by default
+  - Examples of client components: CareerPathsCarousel, SkillGapChart (uses Recharts)
 - **Data Validation:** Zod schemas for all external data
 - **Error Handling:** Comprehensive try-catch with structured logging
 - **API Design:** Consistent response format across all endpoints
@@ -250,36 +197,13 @@ All AI outputs validated against schemas:
 - Early error detection before UI rendering
 - Better TypeScript inference
 
-### Response Caching Strategy
-Intelligent caching implementation for improved performance and reduced API costs. See [CONFIGURATION.md - Caching Configuration](../CONFIGURATION.md#caching-configuration) for detailed caching information and configuration options.
 
-- SHA256 hash-based keys for consistency
-- 1-hour TTL for freshness
-- Disableable for development
-- Reduces API costs and improves responsiveness
-
-### Rate Limiting for MVP
-Prevents abuse while keeping MVP simple. See [CONFIGURATION.md - Rate Limiting Configuration](../CONFIGURATION.md#rate-limiting-configuration) for detailed rate limiting information.
-
-- 5 requests/day per IP (configurable)
-- 24-hour sliding window
-- Skips localhost for development
-- Can be disabled completely
-
-### Structured Logging with Pino
-Production-ready logging implementation. See [CONFIGURATION.md - Logging Configuration](../CONFIGURATION.md#logging-configuration) for detailed logging setup and troubleshooting.
-
-- Structured JSON output for analysis
-- Configurable log levels
-- Pretty-printing in development
-- Module-based logger instances for tracking
 
 ### Client-Side Context for Settings
 React Context API for application state:
 - API mode selection (mock vs real)
 - AI provider selection (Gemini vs Deepseek)
 - No authentication needed for MVP
-- localStorage support for future persistence
 
 ### Next.js API Routes
 Chosen for MVP simplicity:
@@ -288,3 +212,19 @@ Chosen for MVP simplicity:
 - Built-in middleware support
 - Simplified deployment
 - Easy migration path to standalone backend when needed
+## SEO Implementation
+
+Next.js 15 Metadata API with global/page-specific metadata, JSON-LD structured data, dynamic sitemap, and robots.txt.
+
+**Implementation Details:** See [SEO_GUIDE.md](./SEO_GUIDE.md)
+
+## Deployment
+
+### Vercel
+Application deployed on Vercel with:
+- Automatic HTTPS, HTTP/2, Edge CDN
+- Security headers via `vercel.json`
+- Environment variables for configuration
+- Image optimization and compression
+
+**Configuration:** See [CONFIGURATION.md](CONFIGURATION.md) for environment setup

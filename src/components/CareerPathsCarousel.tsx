@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * CareerPathsCarousel Component
  * Horizontal scrollable carousel of minimal career path cards
