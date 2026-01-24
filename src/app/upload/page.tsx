@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     description:
       'Upload your resume to get AI-powered career analysis, strategic path recommendations, and personalized roadmaps for your next role.',
   },
+  alternates: {
+    canonical: '/upload',
+  },
 };
 
 export default function UploadPage() {

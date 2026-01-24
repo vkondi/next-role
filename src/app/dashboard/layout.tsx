@@ -9,6 +9,9 @@ export const metadata: Metadata = {
     description:
       'View your AI-generated career paths, skill gap analysis, and month-by-month roadmap to achieve your next career milestone.',
   },
+  alternates: {
+    canonical: '/dashboard',
+  },
   robots: {
     index: false,
     follow: true,
