@@ -12,3 +12,4 @@ export { ApiModeToggle } from './ApiModeToggle';
 export { default as Footer } from './Footer';
 export { default as Toast } from './Toast';
 export { default as MockModeToast } from './MockModeToast';
+export { default as JsonLd } from './JsonLd';

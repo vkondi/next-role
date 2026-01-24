@@ -1,27 +1,27 @@
 /** POST /api/roadmap/generate - Generates career transition roadmap */
 
-import { NextRequest, NextResponse } from "next/server";
-import { RoadmapGeneratorRequestSchema } from "@/lib/ai/schemas";
-import { generateRoadmap } from "@/lib/ai/prompts/roadmapGenerator";
-import { generateMockRoadmap } from "@/lib/api/mockData";
-import { responseCache } from "@/lib/api/cache";
-import { getAIProviderFromBody } from "@/lib/api/aiProvider";
-import { getLogger } from "@/lib/api/logger";
+import { NextRequest, NextResponse } from 'next/server';
+import { RoadmapGeneratorRequestSchema } from '@/lib/ai/schemas';
+import { generateRoadmap } from '@/lib/ai/prompts/roadmapGenerator';
+import { generateMockRoadmap } from '@/lib/api/mockData';
+import { responseCache } from '@/lib/api/cache';
+import { getAIProviderFromBody } from '@/lib/api/aiProvider';
+import { getLogger } from '@/lib/api/logger';
 
-const log = getLogger("API:RoadmapGenerate");
+const log = getLogger('API:RoadmapGenerate');
 
 const handler = async (request: NextRequest) => {
   try {
     const body = await request.json();
-    const useMock = request.nextUrl.searchParams.get("mock") === "true";
+    const useMock = request.nextUrl.searchParams.get('mock') === 'true';
 
-    log.info({ useMock }, "Roadmap generation request received");
+    log.info({ useMock }, 'Roadmap generation request received');
 
     const validatedData = RoadmapGeneratorRequestSchema.safeParse(body);
     if (!validatedData.success) {
       log.warn(
         { error: validatedData.error.errors[0].message },
-        "Roadmap generation - validation failed"
+        'Roadmap generation - validation failed'
       );
       return NextResponse.json(
         {
@@ -32,63 +32,85 @@ const handler = async (request: NextRequest) => {
       );
     }
 
-    const { resumeProfile, careerPath, skillGapAnalysis, timelineMonths = 6 } =
-      validatedData.data;
+    const {
+      resumeProfile,
+      careerPath,
+      skillGapAnalysis,
+      timelineMonths = 6,
+    } = validatedData.data;
 
     if (!useMock) {
       const skillKey = skillGapAnalysis.skillGaps
-        .filter((sg) => sg.importance === "High")
+        .filter((sg) => sg.importance === 'High')
         .slice(0, 3)
         .map((sg) => sg.skillName)
-        .join("_");
+        .join('_');
       const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${skillKey}`;
       const cached = responseCache.get(cacheKey);
       if (cached) {
-        log.debug({ cacheKey }, "Roadmap generation cache hit");
+        log.debug({ cacheKey }, 'Roadmap generation cache hit');
         return NextResponse.json({ success: true, data: cached });
       }
     }
 
     let roadmap;
-    
+
     if (useMock) {
-      log.debug("Generating mock roadmap");
+      log.debug('Generating mock roadmap');
       // Use mock data
-      roadmap = generateMockRoadmap(resumeProfile, careerPath, skillGapAnalysis, timelineMonths);
+      roadmap = generateMockRoadmap(
+        resumeProfile,
+        careerPath,
+        skillGapAnalysis,
+        timelineMonths
+      );
     } else {
       // Call actual AI API
       try {
         // Extract provider directly from the parsed body
         const aiProvider = getAIProviderFromBody(body);
         const startTime = Date.now();
-        
+
         log.info(
           { aiProvider, timelineMonths, role: careerPath.roleName },
-          "Generating roadmap with AI provider"
+          'Generating roadmap with AI provider'
         );
-        roadmap = await generateRoadmap(resumeProfile, careerPath, skillGapAnalysis, timelineMonths, aiProvider);
-        
+        roadmap = await generateRoadmap(
+          resumeProfile,
+          careerPath,
+          skillGapAnalysis,
+          timelineMonths,
+          aiProvider
+        );
+
         const responseTime = Date.now() - startTime;
-        const usedFallback = (roadmap as any)._usedFallback || false;
-        
+        const usedFallback =
+          (roadmap as Record<string, unknown> & { _usedFallback?: boolean })
+            ._usedFallback || false;
+
         log.info(
-          { responseTime, phases: roadmap.phases.length, usedFallback, aiProvider },
-          "Roadmap generated successfully"
+          {
+            responseTime,
+            phases: roadmap.phases.length,
+            usedFallback,
+            aiProvider,
+          },
+          'Roadmap generated successfully'
         );
-        
+
         const skillKey = skillGapAnalysis.skillGaps
-          .filter((sg) => sg.importance === "High")
+          .filter((sg) => sg.importance === 'High')
           .slice(0, 3)
           .map((sg) => sg.skillName)
-          .join("_");
+          .join('_');
         const cacheKey = `roadmap_${careerPath.roleId}_${timelineMonths}_${skillKey}`;
         responseCache.set(cacheKey, roadmap, 30 * 24 * 60 * 60 * 1000);
-        log.debug({ cacheKey }, "Roadmap cached");
+        log.debug({ cacheKey }, 'Roadmap cached');
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         log.error(
           { error: errorMsg, aiProvider: getAIProviderFromBody(body) },
-          "Failed to generate roadmap"
+          'Failed to generate roadmap'
         );
         return NextResponse.json(
           {
@@ -100,8 +122,10 @@ const handler = async (request: NextRequest) => {
       }
     }
 
-    const usedFallback = (roadmap as any)._usedFallback || false;
-    
+    const usedFallback =
+      (roadmap as Record<string, unknown> & { _usedFallback?: boolean })
+        ._usedFallback || false;
+
     return NextResponse.json({
       success: true,
       data: roadmap,
@@ -109,7 +133,7 @@ const handler = async (request: NextRequest) => {
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    log.error({ error: errorMsg }, "Roadmap generation request failed");
+    log.error({ error: errorMsg }, 'Roadmap generation request failed');
     return NextResponse.json(
       {
         success: false,

@@ -1,25 +1,26 @@
 /** Career path generator prompt module */
 
-import { CareerPathMinimalSchema } from "../schemas";
-import type { CareerPathMinimal, ResumeProfile } from "../schemas";
-import { z } from "zod";
-import { callAI } from "@/lib/api/aiProvider";
-import { getLogger } from "@/lib/api/logger";
-import type { AIProvider } from "@/lib/api/aiProvider";
-import { TOKEN_CONFIG } from "@/lib/config/appConfig";
+import { CareerPathMinimalSchema } from '../schemas';
+import type { CareerPathMinimal, ResumeProfile } from '../schemas';
+import { z } from 'zod';
+import { callAI } from '@/lib/api/aiProvider';
+import { getLogger } from '@/lib/api/logger';
+import type { AIProvider } from '@/lib/api/aiProvider';
+import { TOKEN_CONFIG } from '@/lib/config/appConfig';
+import { getSystemMessage } from './systemMessages';
 import {
   removeMarkdownBlocks,
   normalizeEnumValue,
-} from "@/lib/api/jsonRecovery";
+} from '@/lib/api/jsonRecovery';
 
-const log = getLogger("LIB:CareerPathGenerator");
+const log = getLogger('LIB:CareerPathGenerator');
 
 /** Minimal prompt for quick path generation (~50% token reduction) */
 export function createCareerPathMinimalPrompt(
   resumeProfile: ResumeProfile,
   numberOfPaths: number = 4
 ): string {
-  const topTechs = resumeProfile.techStack.slice(0, 5).join(",");
+  const topTechs = resumeProfile.techStack.slice(0, 5).join(',');
   return `You are a career advisor. Generate exactly ${numberOfPaths} career paths.
 
 Profile: ${resumeProfile.currentRole}, ${resumeProfile.yearsOfExperience}yr, ${topTechs}
@@ -45,8 +46,8 @@ Use EXACT enum values. Return ONLY this JSON:
  */
 function tryRecoverCareerPathMinimalArray(
   text: string
-): Array<Record<string, any>> | null {
-  const items: Array<Record<string, any>> = [];
+): Array<Record<string, unknown>> | null {
+  const items: Array<Record<string, unknown>> = [];
 
   // Try to extract individual path objects using regex
   const objPattern = /\{[^}]+\}/g;
@@ -57,10 +58,10 @@ function tryRecoverCareerPathMinimalArray(
   }
 
   matches.forEach((objStr) => {
-    const item: Record<string, any> = {
-      id: "",
-      name: "",
-      desc: "",
+    const item: Record<string, unknown> = {
+      id: '',
+      name: '',
+      desc: '',
       mkt: 0,
       ind: 0,
       skl: [],
@@ -90,8 +91,8 @@ function tryRecoverCareerPathMinimalArray(
     const sklMatch = objStr.match(/"?skl"?\s*:\s*\[([^\]]*)/i);
     if (sklMatch) {
       item.skl = sklMatch[1]
-        .split(",")
-        .map((s: string) => s.trim().replace(/"/g, ""))
+        .split(',')
+        .map((s: string) => s.trim().replace(/"/g, ''))
         .filter((s: string) => s.length > 0);
     }
 
@@ -105,16 +106,18 @@ function tryRecoverCareerPathMinimalArray(
  * Recover career path details object from truncated/malformed response
  * Extracts fields using regex when JSON parsing fails
  */
-function tryRecoverCareerPathDetails(text: string): Record<string, any> | null {
-  const recovered: Record<string, any> = {};
+function tryRecoverCareerPathDetails(
+  text: string
+): Record<string, unknown> | null {
+  const recovered: Record<string, unknown> = {};
 
   // Extract effortLevel
   const effortMatch = text.match(/"?effortLevel"?\s*:\s*"([^"]+)"/i);
   if (effortMatch) {
     const normalized = normalizeEnumValue(effortMatch[1], [
-      "Low",
-      "Medium",
-      "High",
+      'Low',
+      'Medium',
+      'High',
     ]);
     if (normalized) recovered.effortLevel = normalized;
   }
@@ -123,9 +126,9 @@ function tryRecoverCareerPathDetails(text: string): Record<string, any> | null {
   const rewardMatch = text.match(/"?rewardPotential"?\s*:\s*"([^"]+)"/i);
   if (rewardMatch) {
     const normalized = normalizeEnumValue(rewardMatch[1], [
-      "Low",
-      "Medium",
-      "High",
+      'Low',
+      'Medium',
+      'High',
     ]);
     if (normalized) recovered.rewardPotential = normalized;
   }
@@ -155,27 +158,27 @@ export async function parseCareerPathMinimalResponse(
     let cleanedText = removeMarkdownBlocks(responseText.trim());
 
     // If response still has text before JSON, extract the JSON array
-    if (!cleanedText.startsWith("[")) {
-      const jsonStart = cleanedText.indexOf("[");
+    if (!cleanedText.startsWith('[')) {
+      const jsonStart = cleanedText.indexOf('[');
       if (jsonStart !== -1) {
-        const jsonEnd = cleanedText.lastIndexOf("]");
+        const jsonEnd = cleanedText.lastIndexOf(']');
         if (jsonEnd !== -1) {
           cleanedText = cleanedText.substring(jsonStart, jsonEnd + 1);
         }
       }
     }
 
-    let parsed: any;
+    let parsed: Array<Record<string, unknown>>;
     try {
       parsed = JSON.parse(cleanedText) as Array<Record<string, unknown>>;
     } catch (e) {
       // JSON parsing failed - first try to repair truncated strings
-      const { repairTruncatedJSON } = await import("@/lib/api/jsonRecovery");
+      const { repairTruncatedJSON } = await import('@/lib/api/jsonRecovery');
       const repairedText = repairTruncatedJSON(cleanedText);
-      
+
       try {
         parsed = JSON.parse(repairedText) as Array<Record<string, unknown>>;
-      } catch (repairError) {
+      } catch {
         // If repair failed, try recovery via regex reconstruction
         const recovered = tryRecoverCareerPathMinimalArray(cleanedText);
         if (!recovered) {
@@ -186,14 +189,14 @@ export async function parseCareerPathMinimalResponse(
     }
 
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      throw new Error("Response is not a valid array");
+      throw new Error('Response is not a valid array');
     }
 
     // Map condensed field names
     const mapped = parsed.map((item) => ({
-      roleId: (item.id || item.roleId || "") as string,
-      roleName: (item.name || item.roleName || "") as string,
-      description: (item.desc || item.description || "") as string,
+      roleId: (item.id || item.roleId || '') as string,
+      roleName: (item.name || item.roleName || '') as string,
+      description: (item.desc || item.description || '') as string,
       marketDemandScore: (item.mkt || item.marketDemandScore || 0) as number,
       industryAlignment: (item.ind || item.industryAlignment || 0) as number,
       requiredSkills: (item.skl || item.requiredSkills || []) as string[],
@@ -203,7 +206,7 @@ export async function parseCareerPathMinimalResponse(
   } catch (error) {
     log.error(
       { error: error instanceof Error ? error.message : String(error) },
-      "Failed to parse career paths response"
+      'Failed to parse career paths response'
     );
     throw new Error(
       `Failed to parse career paths: ${
@@ -221,18 +224,18 @@ export async function parseCareerPathDetailsResponse(responseText: string) {
     let cleanedText = removeMarkdownBlocks(responseText.trim());
 
     // Extract JSON object if there's text before it
-    if (!cleanedText.startsWith("{")) {
-      const jsonStart = cleanedText.indexOf("{");
+    if (!cleanedText.startsWith('{')) {
+      const jsonStart = cleanedText.indexOf('{');
       if (jsonStart !== -1) {
-        const jsonEnd = cleanedText.lastIndexOf("}");
+        const jsonEnd = cleanedText.lastIndexOf('}');
         if (jsonEnd !== -1) {
           cleanedText = cleanedText.substring(jsonStart, jsonEnd + 1);
         }
       }
     }
 
-    if (!cleanedText || cleanedText === "{}") {
-      throw new Error("Empty or invalid JSON response");
+    if (!cleanedText || cleanedText === '{}') {
+      throw new Error('Empty or invalid JSON response');
     }
 
     let parsed: Record<string, unknown>;
@@ -249,9 +252,9 @@ export async function parseCareerPathDetailsResponse(responseText: string) {
 
     // Normalize enum values: "Very High" -> "High", "Very Low" -> "Low"
     const normalizeEnum = (value: unknown): string => {
-      if (typeof value !== "string") return value as string;
+      if (typeof value !== 'string') return value as string;
       return (
-        normalizeEnumValue(value, ["Low", "Medium", "High"]) ||
+        normalizeEnumValue(value, ['Low', 'Medium', 'High']) ||
         (value as string)
       );
     };
@@ -267,8 +270,8 @@ export async function parseCareerPathDetailsResponse(responseText: string) {
 
     return z
       .object({
-        effortLevel: z.enum(["Low", "Medium", "High"]),
-        rewardPotential: z.enum(["Low", "Medium", "High"]),
+        effortLevel: z.enum(['Low', 'Medium', 'High']),
+        rewardPotential: z.enum(['Low', 'Medium', 'High']),
         reasoning: z.string(),
         detailedDescription: z.string(),
       })
@@ -288,16 +291,23 @@ export async function parseCareerPathDetailsResponse(responseText: string) {
 export async function generateCareerPathsMinimal(
   resumeProfile: ResumeProfile,
   numberOfPaths: number = 5,
-  aiProvider: AIProvider = "deepseek"
+  aiProvider: AIProvider = 'deepseek'
 ): Promise<CareerPathMinimal[]> {
   log.info(
     { aiProvider, numberOfPaths, currentRole: resumeProfile.currentRole },
-    "Generating minimal career paths"
+    'Generating minimal career paths'
   );
   const prompt = createCareerPathMinimalPrompt(resumeProfile, numberOfPaths);
-  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.CAREER_PATH_GENERATOR);
+  const systemMessage = getSystemMessage('careerPathGenerator');
+  const response = await callAI(
+    aiProvider,
+    prompt,
+    TOKEN_CONFIG.CAREER_PATH_GENERATOR,
+    systemMessage,
+    z.array(CareerPathMinimalSchema) // Pass schema for Gemini structured output
+  );
   const paths = await parseCareerPathMinimalResponse(response);
-  log.info({ count: paths.length }, "Career paths generated successfully");
+  log.info({ count: paths.length }, 'Career paths generated successfully');
   return paths;
 }
 
@@ -307,23 +317,37 @@ export async function generateCareerPathsMinimal(
 export async function generateCareerPathDetails(
   resumeProfile: ResumeProfile,
   pathBasic: { roleId: string; roleName: string },
-  aiProvider: AIProvider = "deepseek"
+  aiProvider: AIProvider = 'deepseek'
 ) {
   log.info(
     { aiProvider, role: pathBasic.roleName },
-    "Generating career path details"
+    'Generating career path details'
   );
   const prompt = createCareerPathDetailsPrompt(
     resumeProfile,
     pathBasic.roleName
   );
-  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.CAREER_PATH_GENERATOR);
+  const systemMessage = getSystemMessage('careerPathGenerator');
+
+  // Schema for partial details response
+  const detailsSchema = z.object({
+    effortLevel: z.enum(['Low', 'Medium', 'High']),
+    rewardPotential: z.enum(['Low', 'Medium', 'High']),
+    why: z.string(),
+    desc: z.string(),
+  });
+
+  const response = await callAI(
+    aiProvider,
+    prompt,
+    TOKEN_CONFIG.CAREER_PATH_GENERATOR,
+    systemMessage,
+    detailsSchema // Pass schema for Gemini structured output
+  );
   const details = await parseCareerPathDetailsResponse(response);
-  log.info({ role: pathBasic.roleName }, "Career path details generated");
+  log.info({ role: pathBasic.roleName }, 'Career path details generated');
   return {
     ...pathBasic,
     ...details,
   };
 }
-
-

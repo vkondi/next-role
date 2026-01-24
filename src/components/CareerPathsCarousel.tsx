@@ -1,12 +1,14 @@
+'use client';
+
 /**
  * CareerPathsCarousel Component
  * Horizontal scrollable carousel of minimal career path cards
  */
 
-import { useRef, useState, useEffect } from "react";
-import { CareerPathCardMinimal } from "./CareerPathCardMinimal";
-import type { CareerPathMinimal } from "@/lib/types";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef, useState, useEffect } from 'react';
+import { CareerPathCardMinimal } from './CareerPathCardMinimal';
+import type { CareerPathMinimal } from '@/lib/types';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CareerPathsCarouselProps {
   paths: CareerPathMinimal[];
@@ -32,15 +34,15 @@ export function CareerPathsCarousel({
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
   };
 
-  const scroll = (direction: "left" | "right") => {
+  const scroll = (direction: 'left' | 'right') => {
     if (!scrollContainerRef.current) return;
     const scrollAmount = 400;
     const newScrollLeft =
       scrollContainerRef.current.scrollLeft +
-      (direction === "left" ? -scrollAmount : scrollAmount);
+      (direction === 'left' ? -scrollAmount : scrollAmount);
     scrollContainerRef.current.scrollTo({
       left: newScrollLeft,
-      behavior: "smooth",
+      behavior: 'smooth',
     });
     setTimeout(checkScroll, 300);
   };
@@ -55,9 +57,9 @@ export function CareerPathsCarousel({
 
     if (selectedCard) {
       selectedCard.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
       });
       setTimeout(checkScroll, 300);
     }
@@ -67,7 +69,9 @@ export function CareerPathsCarousel({
     <div className="space-y-3 sm:space-y-4">
       {/* Title */}
       <div>
-        <h2 className="heading-2 text-2xl sm:text-3xl md:text-4xl">Recommended Career Paths</h2>
+        <h2 className="heading-2 text-2xl sm:text-3xl md:text-4xl">
+          Recommended Career Paths
+        </h2>
         <p className="text-subtitle text-slate-600 text-sm sm:text-base mt-1 sm:mt-2">
           Select a path to explore in detail
         </p>
@@ -92,7 +96,7 @@ export function CareerPathsCarousel({
           {/* Scroll Buttons - Only show on larger screens */}
           {canScrollLeft && (
             <button
-              onClick={() => scroll("left")}
+              onClick={() => scroll('left')}
               className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white rounded-full p-1.5 sm:p-2 shadow-md hover:bg-slate-50 transition-colors hidden sm:flex"
               aria-label="Scroll left"
             >
@@ -102,7 +106,7 @@ export function CareerPathsCarousel({
 
           {canScrollRight && (
             <button
-              onClick={() => scroll("right")}
+              onClick={() => scroll('right')}
               className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white rounded-full p-1.5 sm:p-2 shadow-md hover:bg-slate-50 transition-colors hidden sm:flex"
               aria-label="Scroll right"
             >
@@ -116,10 +120,14 @@ export function CareerPathsCarousel({
               ref={scrollContainerRef}
               onScroll={checkScroll}
               className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth pb-2 px-2 [-webkit-scrollbar:none] [scrollbar-width:none]"
-              style={{ scrollBehavior: "smooth" }}
+              style={{ scrollBehavior: 'smooth' }}
             >
               {paths.map((path) => (
-                <div key={path.roleId} data-path-id={path.roleId} className="pt-2">
+                <div
+                  key={path.roleId}
+                  data-path-id={path.roleId}
+                  className="pt-2"
+                >
                   <CareerPathCardMinimal
                     path={path}
                     isSelected={selectedPathId === path.roleId}
@@ -135,7 +143,9 @@ export function CareerPathsCarousel({
       {/* Empty state */}
       {!isLoading && paths.length === 0 && (
         <div className="card text-center">
-          <p className="text-slate-600 text-sm sm:text-base">No career paths available</p>
+          <p className="text-slate-600 text-sm sm:text-base">
+            No career paths available
+          </p>
         </div>
       )}
 

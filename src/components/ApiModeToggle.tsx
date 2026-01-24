@@ -3,26 +3,23 @@
  * Collapsible floating button for switching between mock and real API
  */
 
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useApiMode, useAIProvider } from "@/lib/context/SettingsContext";
-import { Settings, X } from "lucide-react";
+import { useState } from 'react';
+import { useApiMode, useAIProvider } from '@/lib/context/SettingsContext';
+import { Settings, X } from 'lucide-react';
 
 export function ApiModeToggle() {
   const { mode, setMode } = useApiMode();
   const { provider, setProvider } = useAIProvider();
   const [isOpen, setIsOpen] = useState(false);
-  const isAIProviderEnabled = mode === "real";
+  const isAIProviderEnabled = mode === 'real';
 
   return (
     <>
       {/* Invisible overlay to close panel when clicking outside */}
       {isOpen && (
-        <div
-          className="fixed inset-0 z-30"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
       )}
 
       <div className="fixed bottom-6 right-6 z-40">
@@ -35,24 +32,26 @@ export function ApiModeToggle() {
             <div className="space-y-4">
               {/* API Mode Section */}
               <div>
-                <p className="text-xs font-semibold text-slate-700 mb-2">API Mode:</p>
+                <p className="text-xs font-semibold text-slate-700 mb-2">
+                  API Mode:
+                </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setMode("mock")}
+                    onClick={() => setMode('mock')}
                     className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                      mode === "mock"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      mode === 'mock'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
                     Mock
                   </button>
                   <button
-                    onClick={() => setMode("real")}
+                    onClick={() => setMode('real')}
                     className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                      mode === "real"
-                        ? "bg-blue-600 text-white"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      mode === 'real'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
                     Real API
@@ -62,7 +61,9 @@ export function ApiModeToggle() {
 
               {/* AI Provider Section */}
               <div className="border-t border-slate-200 pt-3">
-                <p className="text-xs font-semibold text-slate-700 mb-2">AI Provider:</p>
+                <p className="text-xs font-semibold text-slate-700 mb-2">
+                  AI Provider:
+                </p>
                 {!isAIProviderEnabled && (
                   <p className="text-xs text-slate-500 mb-2 italic">
                     Only available in Real API mode
@@ -70,27 +71,27 @@ export function ApiModeToggle() {
                 )}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setProvider("deepseek")}
+                    onClick={() => setProvider('deepseek')}
                     disabled={!isAIProviderEnabled}
                     className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                      provider === "deepseek"
-                        ? "bg-indigo-600 text-white"
+                      provider === 'deepseek'
+                        ? 'bg-indigo-600 text-white'
                         : isAIProviderEnabled
-                          ? "bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer"
-                          : "bg-slate-50 text-slate-400 cursor-not-allowed"
+                          ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer'
+                          : 'bg-slate-50 text-slate-400 cursor-not-allowed'
                     }`}
                   >
                     Deepseek
                   </button>
                   <button
-                    onClick={() => setProvider("gemini")}
+                    onClick={() => setProvider('gemini')}
                     disabled={!isAIProviderEnabled}
                     className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                      provider === "gemini"
-                        ? "bg-purple-600 text-white"
+                      provider === 'gemini'
+                        ? 'bg-purple-600 text-white'
                         : isAIProviderEnabled
-                          ? "bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer"
-                          : "bg-slate-50 text-slate-400 cursor-not-allowed"
+                          ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer'
+                          : 'bg-slate-50 text-slate-400 cursor-not-allowed'
                     }`}
                   >
                     Gemini
@@ -100,9 +101,9 @@ export function ApiModeToggle() {
 
               {/* Status Text */}
               <p className="text-xs text-slate-500 border-t border-slate-200 pt-2">
-                {mode === "mock"
-                  ? "Using mock data for testing"
-                  : `Using ${provider === "gemini" ? "Gemini" : "Deepseek"} API`}
+                {mode === 'mock'
+                  ? 'Using mock data for testing'
+                  : `Using ${provider === 'gemini' ? 'Gemini' : 'Deepseek'} API`}
               </p>
             </div>
           </div>
@@ -112,7 +113,7 @@ export function ApiModeToggle() {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-white shadow-lg hover:bg-slate-700 transition-all hover:scale-110 active:scale-95"
-          title={isOpen ? "Close settings" : "API mode settings"}
+          title={isOpen ? 'Close settings' : 'API mode settings'}
         >
           {isOpen ? (
             <X className="w-5 h-5" />

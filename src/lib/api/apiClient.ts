@@ -4,7 +4,7 @@
  */
 
 const RATE_LIMIT_MESSAGE =
-  "This is an MVP with a 5 requests/day limit per location. Try Mock mode to explore features without limits!";
+  'This is an MVP with a 5 requests/day limit per location. Try Mock mode to explore features without limits!';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -13,7 +13,7 @@ interface ApiResponse<T> {
 }
 
 interface FetchOptions {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
   body?: string | FormData;
 }
@@ -26,13 +26,13 @@ interface FetchOptions {
  * @returns Parsed response data
  * @throws Error with appropriate message for various failure scenarios
  */
-export async function apiRequest<T = any>(
+export async function apiRequest<T = unknown>(
   url: string,
   options: FetchOptions = {}
 ): Promise<T> {
   try {
     const response = await fetch(url, {
-      method: options.method || "GET",
+      method: options.method || 'GET',
       headers: options.headers,
       body: options.body,
     });
@@ -42,15 +42,13 @@ export async function apiRequest<T = any>(
     try {
       data = (await response.json()) as ApiResponse<T>;
     } catch (parseError) {
-      console.error("[API] Failed to parse JSON response:", parseError);
+      console.error('[API] Failed to parse JSON response:', parseError);
       // If JSON parsing fails and response is not ok, throw HTTP error
       if (!response.ok) {
-        throw new Error(
-          `HTTP ${response.status}: Failed to complete request`
-        );
+        throw new Error(`HTTP ${response.status}: Failed to complete request`);
       }
       // If response is ok but not JSON, that's also an error
-      throw new Error("Invalid response format from server");
+      throw new Error('Invalid response format from server');
     }
 
     // Handle rate limit (429) with user-friendly MVP message
@@ -66,25 +64,26 @@ export async function apiRequest<T = any>(
     // Handle other non-OK responses with backend error or fallback
     if (!response.ok) {
       const errorMsg = data?.error || `HTTP ${response.status}: Request failed`;
-      console.error("[API] Request failed:", errorMsg);
+      console.error('[API] Request failed:', errorMsg);
       throw new Error(errorMsg);
     }
 
     // Check if API returned success: false (200 but API error)
     if (!data.success) {
-      const errorMsg = data?.error || "API request failed";
-      console.error("[API] API returned success: false:", errorMsg);
+      const errorMsg = data?.error || 'API request failed';
+      console.error('[API] API returned success: false:', errorMsg);
       throw new Error(errorMsg);
     }
 
     return data.data as T;
   } catch (error) {
-    const finalError = error instanceof Error
-      ? error
-      : new Error(
-          typeof error === "string" ? error : "Unknown error occurred"
-        );
-    console.error("[API] Final error thrown:", finalError.message);
+    const finalError =
+      error instanceof Error
+        ? error
+        : new Error(
+            typeof error === 'string' ? error : 'Unknown error occurred'
+          );
+    console.error('[API] Final error thrown:', finalError.message);
     throw finalError;
   }
 }
@@ -96,9 +95,12 @@ export async function apiRequest<T = any>(
  * @returns URL with mock parameter if needed
  */
 export function buildApiUrl(baseUrl: string, isMock: boolean): string {
-  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : "");
+  const url = new URL(
+    baseUrl,
+    typeof window !== 'undefined' ? window.location.origin : ''
+  );
   if (isMock) {
-    url.searchParams.set("mock", "true");
+    url.searchParams.set('mock', 'true');
   }
   return url.toString();
 }

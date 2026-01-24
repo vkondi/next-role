@@ -1,8 +1,9 @@
 /** Rate limiter: 5 requests/day per IP */
 
-import { getLogger } from "./logger";
+import { NextRequest, NextResponse } from 'next/server';
+import { getLogger } from './logger';
 
-const log = getLogger("API:RateLimiter");
+const log = getLogger('API:RateLimiter');
 
 interface RateLimitRecord {
   count: number;
@@ -18,10 +19,10 @@ const RATE_LIMIT_CONFIG = {
 
 /** Check if IP is local (skip rate limiting) */
 function isLocalIp(ip: string): boolean {
-  if (!ip || ip === "unknown") return false;
+  if (!ip || ip === 'unknown') return false;
 
   const devLocalIp = process.env.DEV_LOCAL_IP;
-  const localhostPatterns = ["127.0.0.1", "::1", "localhost"];
+  const localhostPatterns = ['127.0.0.1', '::1', 'localhost'];
   if (localhostPatterns.includes(ip)) {
     return true;
   }
@@ -39,7 +40,7 @@ export function checkRateLimit(ip: string): {
   resetTime: number;
 } {
   if (isLocalIp(ip)) {
-    log.debug({ ip }, "Rate limit check - local IP, skipping");
+    log.debug({ ip }, 'Rate limit check - local IP, skipping');
     return {
       allowed: true,
       remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY,
@@ -56,7 +57,10 @@ export function checkRateLimit(ip: string): {
       resetTime: now + RATE_LIMIT_CONFIG.WINDOW_SIZE_MS,
     };
     rateLimitStore.set(ip, newRecord);
-    log.info({ ip, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY - 1 }, "Rate limit - new window");
+    log.info(
+      { ip, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY - 1 },
+      'Rate limit - new window'
+    );
     return {
       allowed: true,
       remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_DAY - 1,
@@ -73,9 +77,12 @@ export function checkRateLimit(ip: string): {
   );
 
   if (!isAllowed) {
-    log.warn({ ip, remaining, resetTime: record.resetTime }, "Rate limit exceeded");
+    log.warn(
+      { ip, remaining, resetTime: record.resetTime },
+      'Rate limit exceeded'
+    );
   } else {
-    log.debug({ ip, remaining }, "Rate limit - request allowed");
+    log.debug({ ip, remaining }, 'Rate limit - request allowed');
   }
 
   return {
@@ -87,22 +94,22 @@ export function checkRateLimit(ip: string): {
 
 /** Extract client IP from headers (handles proxies) */
 export function getClientIp(headers: Headers): string {
-  const forwardedFor = headers.get("x-forwarded-for");
+  const forwardedFor = headers.get('x-forwarded-for');
   if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
+    return forwardedFor.split(',')[0].trim();
   }
 
-  const cfIp = headers.get("cf-connecting-ip");
+  const cfIp = headers.get('cf-connecting-ip');
   if (cfIp) {
     return cfIp;
   }
 
-  const realIp = headers.get("x-real-ip");
+  const realIp = headers.get('x-real-ip');
   if (realIp) {
     return realIp;
   }
 
-  return "unknown";
+  return 'unknown';
 }
 
 /** Cleanup expired entries (prevent memory leak) */
@@ -117,33 +124,36 @@ export function cleanupRateLimitStore(): void {
   });
 
   if (entriesToDelete.length > 0) {
-    log.debug({ count: entriesToDelete.length }, "Rate limit store cleanup");
+    log.debug({ count: entriesToDelete.length }, 'Rate limit store cleanup');
     entriesToDelete.forEach((ip) => rateLimitStore.delete(ip));
   }
 }
 
 // Cleanup every hour
-setInterval(() => {
-  cleanupRateLimitStore();
-}, 60 * 60 * 1000);
+setInterval(
+  () => {
+    cleanupRateLimitStore();
+  },
+  60 * 60 * 1000
+);
 
 /** Wrap handlers with rate limiting */
 export function withRateLimit(
-  handler: (request: any) => Promise<any>,
+  handler: (request: NextRequest) => Promise<NextResponse>,
   requiresAiIntegration: boolean = true
-): (request: any) => Promise<any> {
-  return async (request: any) => {
-    const useMock = request.nextUrl.searchParams.get("mock") === "true";
-    const enableRateLimiter = process.env.ENABLE_RATE_LIMITER === "true";
-    
+): (request: NextRequest) => Promise<NextResponse> {
+  return async (request: NextRequest) => {
+    const useMock = request.nextUrl.searchParams.get('mock') === 'true';
+    const enableRateLimiter = process.env.ENABLE_RATE_LIMITER === 'true';
+
     if (enableRateLimiter && requiresAiIntegration && !useMock) {
       const clientIp = getClientIp(request.headers);
       const rateLimitResult = checkRateLimit(clientIp);
 
       if (!rateLimitResult.allowed) {
-        const { NextResponse } = await import("next/server");
+        const { NextResponse } = await import('next/server');
         const resetTime = new Date(rateLimitResult.resetTime).toLocaleString();
-        log.warn({ clientIp, resetTime }, "Rate limit - request rejected");
+        log.warn({ clientIp, resetTime }, 'Rate limit - request rejected');
         return NextResponse.json(
           {
             success: false,

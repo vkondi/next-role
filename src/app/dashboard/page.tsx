@@ -3,38 +3,42 @@
  * Main analysis page showing career paths, skill gaps, and roadmaps
  */
 
-"use client";
+'use client';
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   CareerPathsCarousel,
   SkillGapChart,
   RoadmapTimeline,
   ApiModeToggle,
-} from "@/components";
-import MockModeToast from "@/components/MockModeToast";
-import { useApiMode, useAIProvider } from "@/lib/context/SettingsContext";
-import { useResume } from "@/lib/context/ResumeContext";
-import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
-import { calculateTimelineMonths } from "@/lib/utils/timelineUtils";
+} from '@/components';
+import MockModeToast from '@/components/MockModeToast';
+import { useApiMode, useAIProvider } from '@/lib/context/SettingsContext';
+import { useResume } from '@/lib/context/ResumeContext';
+import { apiRequest, buildApiUrl } from '@/lib/api/apiClient';
+import { calculateTimelineMonths } from '@/lib/utils/timelineUtils';
 import type {
   ResumeProfile,
   CareerPath,
   CareerPathMinimal,
   SkillGapAnalysis,
   CareerRoadmap,
-} from "@/lib/types";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+} from '@/lib/types';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { mode } = useApiMode();
   const { provider } = useAIProvider();
   const { resumeProfile } = useResume();
-  const initialLoadRef = useRef(true);
-  const [careerPathsMinimal, setCareerPathsMinimal] = useState<CareerPathMinimal[]>([]);
+  const hasFetchedRef = useRef(false);
+  const previousModeRef = useRef(mode);
+  const fetchInProgressRef = useRef(false);
+  const [careerPathsMinimal, setCareerPathsMinimal] = useState<
+    CareerPathMinimal[]
+  >([]);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const [selectedPath, setSelectedPath] = useState<CareerPath | null>(null);
   const [skillGapAnalysis, setSkillGapAnalysis] =
@@ -45,57 +49,64 @@ export default function DashboardPage() {
   const [skillGapLoading, setSkillGapLoading] = useState(false);
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fallbackNotification, setFallbackNotification] = useState<boolean>(false);
+  const [fallbackNotification, setFallbackNotification] =
+    useState<boolean>(false);
 
   // Fetch MINIMAL career paths (fast, for carousel)
   const fetchCareerPathsMinimal = useCallback(
     async (profile: ResumeProfile, apiMode: string) => {
+      if (fetchInProgressRef.current) {
+        return;
+      }
+
+      fetchInProgressRef.current = true;
       try {
         const url = buildApiUrl(
-          "/api/career-paths/generate",
-          apiMode === "mock"
+          '/api/career-paths/generate',
+          apiMode === 'mock'
         );
         const paths = await apiRequest<CareerPathMinimal[]>(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeProfile: profile, numberOfPaths: 5, aiProvider: provider }),
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resumeProfile: profile,
+            numberOfPaths: 5,
+            aiProvider: provider,
+          }),
         });
         setCareerPathsMinimal(paths);
-        // NO auto-selection - guide user to select one
         setSelectedPathId(null);
         setSelectedPath(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
+        fetchInProgressRef.current = false;
       }
     },
     [provider]
   );
 
   // Unified effect: Handle initial load and mode changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Check if user has resume context
     if (!resumeProfile) {
-      // If first time loading, redirect to upload
-      if (initialLoadRef.current) {
-        initialLoadRef.current = false;
-        router.push("/upload");
-      }
+      router.push('/upload');
       return;
     }
 
     // First time: load career paths
-    if (initialLoadRef.current) {
-      initialLoadRef.current = false;
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      previousModeRef.current = mode;
       setLoading(true);
       fetchCareerPathsMinimal(resumeProfile, mode);
       return;
     }
 
-    // Subsequent times: reload when mode changes
-    if (!loading) {
+    // Subsequent times: only reload if mode actually changed
+    if (previousModeRef.current !== mode) {
+      previousModeRef.current = mode;
       setLoading(true);
       setCareerPathsMinimal([]);
       setSelectedPathId(null);
@@ -103,10 +114,10 @@ export default function DashboardPage() {
       setSkillGapAnalysis(null);
       setRoadmap(null);
       setError(null);
-
       fetchCareerPathsMinimal(resumeProfile, mode);
     }
-  }, [mode, resumeProfile, fetchCareerPathsMinimal, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, resumeProfile, router]);
 
   const loadRoadmap = useCallback(
     async (
@@ -123,10 +134,10 @@ export default function DashboardPage() {
           gaps.overallGapSeverity
         );
 
-        const url = buildApiUrl("/api/roadmap/generate", mode === "mock");
-        const response = await apiRequest<any>(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const url = buildApiUrl('/api/roadmap/generate', mode === 'mock');
+        const roadmapData = await apiRequest<CareerRoadmap>(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             resumeProfile: profile,
             careerPath: path,
@@ -135,15 +146,10 @@ export default function DashboardPage() {
             aiProvider: provider,
           }),
         });
-        
-        // Check if fallback was used
-        if (response.meta?.usedFallback) {
-          setFallbackNotification(true);
-        }
-        
-        setRoadmap(response);
+
+        setRoadmap(roadmapData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setRoadmapLoading(false);
       }
@@ -167,15 +173,12 @@ export default function DashboardPage() {
       // Fetch detailed info for this path
       setDetailedLoading(true);
       let detailedPath: CareerPath | null = null;
-      
+
       try {
-        const url = buildApiUrl(
-          "/api/career-paths/details",
-          mode === "mock"
-        );
+        const url = buildApiUrl('/api/career-paths/details', mode === 'mock');
         const details = await apiRequest<CareerPath>(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             resumeProfile,
             pathBasic: {
@@ -192,7 +195,7 @@ export default function DashboardPage() {
         } as CareerPath;
         setSelectedPath(detailedPath);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(err instanceof Error ? err.message : 'Unknown error');
         setDetailedLoading(false);
         return;
       }
@@ -201,16 +204,16 @@ export default function DashboardPage() {
 
       // Once we have detailed path, fetch skill gap analysis
       if (!detailedPath) {
-        setError("Failed to load path details");
+        setError('Failed to load path details');
         return;
       }
 
       setSkillGapLoading(true);
       try {
-        const url = buildApiUrl("/api/skill-gap/analyze", mode === "mock");
+        const url = buildApiUrl('/api/skill-gap/analyze', mode === 'mock');
         const gapAnalysis = await apiRequest<SkillGapAnalysis>(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             resumeProfile,
             careerPath: detailedPath,
@@ -221,7 +224,7 @@ export default function DashboardPage() {
         setSkillGapLoading(false);
         loadRoadmap(resumeProfile, detailedPath, gapAnalysis);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(err instanceof Error ? err.message : 'Unknown error');
         setSkillGapLoading(false);
       }
     },
@@ -267,14 +270,20 @@ export default function DashboardPage() {
       {/* Navigation */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="container flex items-center justify-between h-14 sm:h-16 md:h-20">
-          <Link href="/" className="text-base sm:text-lg md:text-2xl font-bold text-emerald-600 flex-shrink-0">
+          <Link
+            href="/"
+            className="text-base sm:text-lg md:text-2xl font-bold text-emerald-600 flex-shrink-0"
+          >
             NextRole
           </Link>
           <div className="flex items-center gap-2">
             <span className="text-xs sm:text-sm font-semibold text-emerald-600 flex-shrink-0">
               ✓ Complete
             </span>
-            <Link href="/upload" className="btn btn-secondary btn-sm flex-shrink-0">
+            <Link
+              href="/upload"
+              className="btn btn-secondary btn-sm flex-shrink-0"
+            >
               <ArrowLeft className="w-3 h-3" />
               <span className="hidden xs:inline">New</span>
             </Link>
@@ -290,17 +299,17 @@ export default function DashboardPage() {
             <h1 className="heading-1">
               {resumeProfile.name
                 ? `${resumeProfile.name}'s Career Strategy`
-                : "Your Career Strategy"}
+                : 'Your Career Strategy'}
             </h1>
             <p className="text-subtitle text-slate-600 text-sm sm:text-base">
-              Based on your profile as a {resumeProfile.currentRole} with{" "}
+              Based on your profile as a {resumeProfile.currentRole} with{' '}
               {resumeProfile.yearsOfExperience} years of experience
             </p>
           </div>
         )}
 
         {/* Mock Mode Toast - Only show in mock mode */}
-        {mode === "mock" && (
+        {mode === 'mock' && (
           <div className="px-2 sm:px-0">
             <MockModeToast />
           </div>
@@ -312,9 +321,13 @@ export default function DashboardPage() {
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 sm:p-5 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-orange-900 mb-1">Roadmap Generated with Standard Template</p>
+                <p className="text-sm font-semibold text-orange-900 mb-1">
+                  Roadmap Generated with Standard Template
+                </p>
                 <p className="text-xs sm:text-sm text-orange-700">
-                  The AI had trouble generating a customized roadmap. We've provided you with a standard template that you can customize based on your specific needs.
+                  The AI had trouble generating a customized roadmap. We've
+                  provided you with a standard template that you can customize
+                  based on your specific needs.
                 </p>
               </div>
             </div>
@@ -344,35 +357,61 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <div className="card">
               <div className="space-y-4">
-                <h3 className="heading-3 text-lg sm:text-2xl">{selectedPath.roleName}</h3>
-                <p className="text-body text-slate-700 text-sm sm:text-base">{selectedPath.description}</p>
-                
+                <h3 className="heading-3 text-lg sm:text-2xl">
+                  {selectedPath.roleName}
+                </h3>
+                <p className="text-body text-slate-700 text-sm sm:text-base">
+                  {selectedPath.description}
+                </p>
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
                   <div className="bg-slate-50 p-2 sm:p-3 rounded-lg">
-                    <p className="text-xs font-semibold text-slate-600 mb-1">Market Demand</p>
-                    <p className="heading-4 text-emerald-600 text-lg">{selectedPath.marketDemandScore}%</p>
+                    <p className="text-xs font-semibold text-slate-600 mb-1">
+                      Market Demand
+                    </p>
+                    <p className="heading-4 text-emerald-600 text-lg">
+                      {selectedPath.marketDemandScore}%
+                    </p>
                   </div>
                   <div className="bg-slate-50 p-2 sm:p-3 rounded-lg">
-                    <p className="text-xs font-semibold text-slate-600 mb-1">Industry Fit</p>
-                    <p className="heading-4 text-emerald-600 text-lg">{selectedPath.industryAlignment}%</p>
+                    <p className="text-xs font-semibold text-slate-600 mb-1">
+                      Industry Fit
+                    </p>
+                    <p className="heading-4 text-emerald-600 text-lg">
+                      {selectedPath.industryAlignment}%
+                    </p>
                   </div>
                   <div className="bg-slate-50 p-2 sm:p-3 rounded-lg">
-                    <p className="text-xs font-semibold text-slate-600 mb-1">Effort</p>
-                    <p className="heading-4 text-slate-900 text-lg">{selectedPath.effortLevel}</p>
+                    <p className="text-xs font-semibold text-slate-600 mb-1">
+                      Effort
+                    </p>
+                    <p className="heading-4 text-slate-900 text-lg">
+                      {selectedPath.effortLevel}
+                    </p>
                   </div>
                   <div className="bg-slate-50 p-2 sm:p-3 rounded-lg">
-                    <p className="text-xs font-semibold text-slate-600 mb-1">Reward</p>
-                    <p className="heading-4 text-slate-900 text-lg">{selectedPath.rewardPotential}</p>
+                    <p className="text-xs font-semibold text-slate-600 mb-1">
+                      Reward
+                    </p>
+                    <p className="heading-4 text-slate-900 text-lg">
+                      {selectedPath.rewardPotential}
+                    </p>
                   </div>
                 </div>
 
                 <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 sm:p-4">
-                  <p className="text-xs sm:text-sm font-semibold text-emerald-900 mb-2">Why This Path?</p>
-                  <p className="text-xs sm:text-sm text-emerald-800">{selectedPath.reasoning}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-emerald-900 mb-2">
+                    Why This Path?
+                  </p>
+                  <p className="text-xs sm:text-sm text-emerald-800">
+                    {selectedPath.reasoning}
+                  </p>
                 </div>
 
                 <div>
-                  <p className="text-xs sm:text-sm font-semibold text-slate-700 mb-2">Required Skills</p>
+                  <p className="text-xs sm:text-sm font-semibold text-slate-700 mb-2">
+                    Required Skills
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {selectedPath.requiredSkills.map((skill) => (
                       <span
@@ -437,7 +476,9 @@ export default function DashboardPage() {
         {/* Detailed Skill Gaps */}
         {skillGapAnalysis && !skillGapLoading && (
           <div className="card space-y-4 sm:space-y-6">
-            <h3 className="heading-2 text-xl sm:text-2xl md:text-4xl">Skill Gap Details</h3>
+            <h3 className="heading-2 text-xl sm:text-2xl md:text-4xl">
+              Skill Gap Details
+            </h3>
 
             <div className="space-y-3 sm:space-y-4">
               {skillGapAnalysis.skillGaps.map((gap, index) => (
@@ -456,11 +497,11 @@ export default function DashboardPage() {
                     </div>
                     <span
                       className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold flex-shrink-0 ${
-                        gap.importance === "High"
-                          ? "bg-red-100 text-red-700"
-                          : gap.importance === "Medium"
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-green-100 text-green-700"
+                        gap.importance === 'High'
+                          ? 'bg-red-100 text-red-700'
+                          : gap.importance === 'Medium'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-green-100 text-green-700'
                       }`}
                     >
                       {gap.importance} Priority
@@ -479,7 +520,9 @@ export default function DashboardPage() {
                               key={i}
                               className="text-xs sm:text-sm text-slate-600 flex items-start gap-2"
                             >
-                              <span className="text-emerald-600 mt-0.5 flex-shrink-0">•</span>
+                              <span className="text-emerald-600 mt-0.5 flex-shrink-0">
+                                •
+                              </span>
                               {resource}
                             </li>
                           ))}
@@ -502,7 +545,8 @@ export default function DashboardPage() {
                   Generating your career roadmap...
                 </p>
                 <p className="text-xs sm:text-sm text-slate-600">
-                  Creating a personalized development plan based on your skill gaps
+                  Creating a personalized development plan based on your skill
+                  gaps
                 </p>
               </div>
             </div>

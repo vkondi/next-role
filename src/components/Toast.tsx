@@ -1,44 +1,39 @@
-"use client";
+'use client';
 
-import { X } from "lucide-react";
+import { X } from 'lucide-react';
 
 interface ToastProps {
-  type: "info" | "success" | "error" | "warning";
+  type: 'info' | 'success' | 'error' | 'warning';
   title: string;
   message: string;
   onClose: () => void;
 }
 
-export default function Toast({
-  type,
-  title,
-  message,
-  onClose,
-}: ToastProps) {
+export default function Toast({ type, title, message, onClose }: ToastProps) {
   const typeStyles = {
     info: {
-      container: "bg-blue-50 border-blue-200",
-      icon: "text-blue-600",
-      title: "text-blue-900",
-      message: "text-blue-700",
+      container: 'bg-blue-50 border-blue-200',
+      icon: 'text-blue-600',
+      title: 'text-blue-900',
+      message: 'text-blue-700',
     },
     success: {
-      container: "bg-green-50 border-green-200",
-      icon: "text-green-600",
-      title: "text-green-900",
-      message: "text-green-700",
+      container: 'bg-green-50 border-green-200',
+      icon: 'text-green-600',
+      title: 'text-green-900',
+      message: 'text-green-700',
     },
     error: {
-      container: "bg-red-50 border-red-200",
-      icon: "text-red-600",
-      title: "text-red-900",
-      message: "text-red-700",
+      container: 'bg-red-50 border-red-200',
+      icon: 'text-red-600',
+      title: 'text-red-900',
+      message: 'text-red-700',
     },
     warning: {
-      container: "bg-yellow-50 border-yellow-200",
-      icon: "text-yellow-600",
-      title: "text-yellow-900",
-      message: "text-yellow-700",
+      container: 'bg-yellow-50 border-yellow-200',
+      icon: 'text-yellow-600',
+      title: 'text-yellow-900',
+      message: 'text-yellow-700',
     },
   };
 
