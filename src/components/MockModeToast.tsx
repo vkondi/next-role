@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Toast from "./Toast";
+import { useState } from 'react';
+import Toast from './Toast';
 
 export default function MockModeToast() {
   const [showToast, setShowToast] = useState(true);

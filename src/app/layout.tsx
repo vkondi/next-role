@@ -2,25 +2,25 @@
  * Global styles for the application
  */
 
-import type { Metadata } from "next";
-import { SettingsProvider } from "@/lib/context/SettingsContext";
-import { ResumeProvider } from "@/lib/context/ResumeContext";
-import Footer from "@/components/Footer";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { SettingsProvider } from '@/lib/context/SettingsContext';
+import { ResumeProvider } from '@/lib/context/ResumeContext';
+import Footer from '@/components/Footer';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "NextRole - Your Next Role, Planned with Clarity",
+  title: 'NextRole - Your Next Role, Planned with Clarity',
   description:
-    "A career strategy copilot that analyzes your resume, simulates career paths, and generates actionable career roadmaps.",
+    'A career strategy copilot that analyzes your resume, simulates career paths, and generates actionable career roadmaps.',
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: '/favicon.ico' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
-    apple: "/apple-touch-icon.png",
+    apple: '/apple-touch-icon.png',
   },
-  manifest: "/site.webmanifest",
+  manifest: '/site.webmanifest',
 };
 
 export default function RootLayout({

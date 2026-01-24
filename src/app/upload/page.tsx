@@ -3,9 +3,9 @@
  * Allows users to upload and preview their resume data
  */
 
-"use client";
+'use client';
 
-import UploadPageContent from "./page-content";
+import UploadPageContent from './page-content';
 
 export default function UploadPage() {
   return <UploadPageContent />;

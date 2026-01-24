@@ -1,18 +1,27 @@
-"use client";
+'use client';
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import Link from "next/link";
-import { ArrowRight, Upload, AlertCircle, Sparkles, ChevronDown } from "lucide-react";
-import { ApiModeToggle, MockModeToast } from "@/components";
-import { useApiMode, useAIProvider } from "@/lib/context/SettingsContext";
-import { useResume } from "@/lib/context/ResumeContext";
-import { validateResumeText } from "@/lib/api/resumeValidation";
-import { apiRequest, buildApiUrl } from "@/lib/api/apiClient";
-import { SAMPLE_RESUMES } from "@/data/sampleResumes";
-import type { ResumeProfile } from "@/lib/types";
+import { useState, useRef, useCallback, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  ArrowRight,
+  Upload,
+  AlertCircle,
+  Sparkles,
+  ChevronDown,
+} from 'lucide-react';
+import { ApiModeToggle, MockModeToast } from '@/components';
+import { useApiMode, useAIProvider } from '@/lib/context/SettingsContext';
+import { useResume } from '@/lib/context/ResumeContext';
+import { validateResumeText } from '@/lib/api/resumeValidation';
+import { apiRequest, buildApiUrl } from '@/lib/api/apiClient';
+import { SAMPLE_RESUMES } from '@/data/sampleResumes';
+import type { ResumeProfile } from '@/lib/types';
 
 // Client-side cache for sample resumes to avoid repeated API calls
-const sampleResumeCache = new Map<string, { text: string; timestamp: number }>();
+const sampleResumeCache = new Map<
+  string,
+  { text: string; timestamp: number }
+>();
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export default function UploadPageContent() {
@@ -23,23 +32,23 @@ export default function UploadPageContent() {
   const extractedTextRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const fileErrorRef = useRef<HTMLDivElement>(null);
-  const [resumeText, setResumeText] = useState("");
+  const [resumeText, setResumeText] = useState('');
   const [profile, setProfile] = useState<ResumeProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadMethod, setUploadMethod] = useState<"text" | "file">("file");
+  const [uploadMethod, setUploadMethod] = useState<'text' | 'file'>('file');
   const [fileError, setFileError] = useState<string | null>(null);
   const [loadingSampleId, setLoadingSampleId] = useState<string | null>(null);
   const [showSamples, setShowSamples] = useState(false);
 
   // Auto-scroll to extracted text when file is successfully parsed
   useEffect(() => {
-    if (resumeText && uploadMethod === "file" && extractedTextRef.current) {
+    if (resumeText && uploadMethod === 'file' && extractedTextRef.current) {
       // Use setTimeout to ensure DOM is updated before scrolling
       setTimeout(() => {
         extractedTextRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
+          behavior: 'smooth',
+          block: 'start',
         });
       }, 100);
     }
@@ -50,8 +59,8 @@ export default function UploadPageContent() {
     if (error && errorRef.current) {
       setTimeout(() => {
         errorRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
+          behavior: 'smooth',
+          block: 'start',
         });
       }, 100);
     }
@@ -62,8 +71,8 @@ export default function UploadPageContent() {
     if (fileError && fileErrorRef.current) {
       setTimeout(() => {
         fileErrorRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
+          behavior: 'smooth',
+          block: 'start',
         });
       }, 100);
     }
@@ -71,14 +80,14 @@ export default function UploadPageContent() {
 
   const handleTextSubmit = useCallback(async () => {
     if (!resumeText.trim()) {
-      setError("Please paste your resume content");
+      setError('Please paste your resume content');
       return;
     }
 
     // Validate resume text
     const validation = validateResumeText(resumeText);
     if (!validation.isValid) {
-      setError(validation.error || "Invalid resume content");
+      setError(validation.error || 'Invalid resume content');
       return;
     }
 
@@ -87,16 +96,16 @@ export default function UploadPageContent() {
     setFileError(null); // Clear any file errors
 
     try {
-      const url = buildApiUrl("/api/resume/interpret", mode === "mock");
+      const url = buildApiUrl('/api/resume/interpret', mode === 'mock');
       const profile = await apiRequest<ResumeProfile>(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeText, aiProvider: provider }),
       });
       setProfile(profile);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      console.error("[Upload] Resume analysis failed:", errorMessage);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[Upload] Resume analysis failed:', errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -112,14 +121,23 @@ export default function UploadPageContent() {
     setError(null);
 
     // Validate file type (TXT, PDF, and DOCX supported)
-    const validTypes = ["text/plain", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+    const validTypes = [
+      'text/plain',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
 
-    const isTxtFile = file.name.endsWith(".txt");
-    const isPdfFile = file.name.endsWith(".pdf");
-    const isDocxFile = file.name.endsWith(".docx");
+    const isTxtFile = file.name.endsWith('.txt');
+    const isPdfFile = file.name.endsWith('.pdf');
+    const isDocxFile = file.name.endsWith('.docx');
 
-    if (!validTypes.includes(file.type) && !isTxtFile && !isPdfFile && !isDocxFile) {
-      setFileError("Please upload a TXT, PDF, or DOCX file");
+    if (
+      !validTypes.includes(file.type) &&
+      !isTxtFile &&
+      !isPdfFile &&
+      !isDocxFile
+    ) {
+      setFileError('Please upload a TXT, PDF, or DOCX file');
       return;
     }
 
@@ -127,7 +145,7 @@ export default function UploadPageContent() {
     const maxFileSize = 2 * 1024 * 1024;
     if (file.size > maxFileSize) {
       setFileError(
-        "File size exceeds 2MB limit. Please choose a smaller file."
+        'File size exceeds 2MB limit. Please choose a smaller file.'
       );
       return;
     }
@@ -137,17 +155,17 @@ export default function UploadPageContent() {
     try {
       // Use backend API to parse file
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
 
-      const response = await fetch("/api/upload/parse-file", {
-        method: "POST",
+      const response = await fetch('/api/upload/parse-file', {
+        method: 'POST',
         body: formData,
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        setFileError(data.error || "Failed to parse file");
+        setFileError(data.error || 'Failed to parse file');
         setLoading(false);
         return;
       }
@@ -155,73 +173,70 @@ export default function UploadPageContent() {
       setResumeText(data.text);
       setLoading(false);
     } catch (err) {
-      setFileError(err instanceof Error ? err.message : "Failed to read file");
+      setFileError(err instanceof Error ? err.message : 'Failed to read file');
       setLoading(false);
     }
   };
 
-  const handleLoadSampleResume = useCallback(
-    async (sampleId: string) => {
-      const sample = SAMPLE_RESUMES.find((r) => r.id === sampleId);
-      if (!sample) return;
+  const handleLoadSampleResume = useCallback(async (sampleId: string) => {
+    const sample = SAMPLE_RESUMES.find((r) => r.id === sampleId);
+    if (!sample) return;
 
-      setLoadingSampleId(sampleId);
-      setError(null);
-      setFileError(null);
+    setLoadingSampleId(sampleId);
+    setError(null);
+    setFileError(null);
 
-      try {
-        let text: string;
+    try {
+      let text: string;
 
-        // Check if we have a valid cached version
-        const cached = sampleResumeCache.get(sampleId);
-        const now = Date.now();
-        if (cached && now - cached.timestamp < CACHE_DURATION_MS) {
-          text = cached.text;
-        } else {
-          // Fetch the sample resume from the API endpoint
-          const response = await fetch(`/api/samples/resume/${sampleId}`);
+      // Check if we have a valid cached version
+      const cached = sampleResumeCache.get(sampleId);
+      const now = Date.now();
+      if (cached && now - cached.timestamp < CACHE_DURATION_MS) {
+        text = cached.text;
+      } else {
+        // Fetch the sample resume from the API endpoint
+        const response = await fetch(`/api/samples/resume/${sampleId}`);
 
-          if (!response.ok) {
-            throw new Error("Failed to load sample resume");
-          }
-
-          const data = await response.json();
-          text = data.text;
-
-          // Cache the result
-          sampleResumeCache.set(sampleId, { text, timestamp: now });
+        if (!response.ok) {
+          throw new Error('Failed to load sample resume');
         }
 
-        // Validate resume text
-        const validation = validateResumeText(text);
-        if (!validation.isValid) {
-          setError(validation.error || "Invalid resume content");
-          setLoadingSampleId(null);
-          return;
-        }
+        const data = await response.json();
+        text = data.text;
 
-        setResumeText(text);
-
-        // Auto-scroll to extracted text
-        setTimeout(() => {
-          extractedTextRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        }, 100);
-
-        // Collapse the accordion after successful load
-        setShowSamples(false);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load sample resume"
-        );
-      } finally {
-        setLoadingSampleId(null);
+        // Cache the result
+        sampleResumeCache.set(sampleId, { text, timestamp: now });
       }
-    },
-    []
-  );
+
+      // Validate resume text
+      const validation = validateResumeText(text);
+      if (!validation.isValid) {
+        setError(validation.error || 'Invalid resume content');
+        setLoadingSampleId(null);
+        return;
+      }
+
+      setResumeText(text);
+
+      // Auto-scroll to extracted text
+      setTimeout(() => {
+        extractedTextRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 100);
+
+      // Collapse the accordion after successful load
+      setShowSamples(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to load sample resume'
+      );
+    } finally {
+      setLoadingSampleId(null);
+    }
+  }, []);
 
   if (profile) {
     return (
@@ -252,7 +267,7 @@ export default function UploadPageContent() {
               <h1 className="heading-1">
                 {profile.name
                   ? `${profile.name}, Your Career Profile`
-                  : "Your Career Profile"}
+                  : 'Your Career Profile'}
               </h1>
               <p className="text-subtitle text-slate-600 text-sm sm:text-base">
                 Here&apos;s what we extracted from your resume
@@ -260,7 +275,7 @@ export default function UploadPageContent() {
             </div>
 
             {/* Mock Mode Toast - Only show in mock mode */}
-            {mode === "mock" && (
+            {mode === 'mock' && (
               <div className="px-2 sm:px-0">
                 <MockModeToast />
               </div>
@@ -383,8 +398,9 @@ export default function UploadPageContent() {
                 </p>
                 <p className="text-small text-slate-600 mt-1">
                   You can edit these details if needed before proceeding. For
-                  this MVP, you can proceed directly to the analysis. If the details
-                  are not accurate, try switching to a different AI provider for better results.
+                  this MVP, you can proceed directly to the analysis. If the
+                  details are not accurate, try switching to a different AI
+                  provider for better results.
                 </p>
               </div>
             </div>
@@ -394,7 +410,7 @@ export default function UploadPageContent() {
               <button
                 onClick={() => {
                   setProfile(null);
-                  setResumeText("");
+                  setResumeText('');
                 }}
                 className="btn btn-secondary order-2 sm:order-1"
               >
@@ -450,21 +466,21 @@ export default function UploadPageContent() {
           {/* Upload Method Tabs */}
           <div className="flex gap-1 sm:gap-2 border-b border-slate-200 overflow-x-auto">
             <button
-              onClick={() => setUploadMethod("file")}
+              onClick={() => setUploadMethod('file')}
               className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold border-b-2 transition-colors text-sm sm:text-base whitespace-nowrap ${
-                uploadMethod === "file"
-                  ? "border-emerald-600 text-emerald-600"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
+                uploadMethod === 'file'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
               }`}
             >
               Upload File
             </button>
             <button
-              onClick={() => setUploadMethod("text")}
+              onClick={() => setUploadMethod('text')}
               className={`px-3 sm:px-4 py-2 sm:py-3 font-semibold border-b-2 transition-colors text-sm sm:text-base whitespace-nowrap ${
-                uploadMethod === "text"
-                  ? "border-emerald-600 text-emerald-600"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
+                uploadMethod === 'text'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
               }`}
             >
               Paste Text
@@ -510,7 +526,7 @@ export default function UploadPageContent() {
                 </span>
                 <ChevronDown
                   className={`w-4 h-4 sm:w-5 sm:h-5 text-slate-600 transition-transform flex-shrink-0 ${
-                    showSamples ? "transform rotate-180" : ""
+                    showSamples ? 'transform rotate-180' : ''
                   }`}
                 />
               </div>
@@ -586,7 +602,7 @@ export default function UploadPageContent() {
           {/* Input Section - Only show when not loading */}
           {!loading && (
             <>
-              {uploadMethod === "text" ? (
+              {uploadMethod === 'text' ? (
                 <div className="card-elevated space-y-4">
                   <label className="block space-y-2">
                     <p className="font-semibold text-slate-900 text-sm sm:text-base">
@@ -611,7 +627,7 @@ export default function UploadPageContent() {
                     disabled={loading || !resumeText.trim()}
                     className="btn btn-primary w-full"
                   >
-                    {loading ? "Processing..." : "Analyze Resume"}
+                    {loading ? 'Processing...' : 'Analyze Resume'}
                   </button>
                 </div>
               ) : (
@@ -664,14 +680,14 @@ export default function UploadPageContent() {
                           disabled={loading || !resumeText.trim()}
                           className="btn btn-primary flex-1 text-sm sm:text-base"
                         >
-                          {loading ? "Processing..." : "Analyze Resume"}
+                          {loading ? 'Processing...' : 'Analyze Resume'}
                         </button>
                         <button
                           onClick={() => {
-                            setResumeText("");
+                            setResumeText('');
                             setFileError(null);
                             if (fileInputRef.current) {
-                              fileInputRef.current.value = "";
+                              fileInputRef.current.value = '';
                             }
                           }}
                           disabled={loading}

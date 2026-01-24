@@ -3,8 +3,8 @@
  * Displays the career roadmap as a timeline with phases
  */
 
-import type { CareerRoadmap } from "@/lib/types";
-import { CheckCircle2, Target, BookOpen } from "lucide-react";
+import type { CareerRoadmap } from '@/lib/types';
+import { CheckCircle2, Target, BookOpen } from 'lucide-react';
 
 interface RoadmapTimelineProps {
   roadmap: CareerRoadmap;
@@ -121,7 +121,10 @@ export function RoadmapTimeline({ roadmap }: RoadmapTimelineProps) {
                   </p>
                   <ul className="space-y-1 sm:space-y-1.5">
                     {phase.projectIdeas.map((idea, i) => (
-                      <li key={i} className="text-xs sm:text-sm text-slate-600 flex items-start gap-2">
+                      <li
+                        key={i}
+                        className="text-xs sm:text-sm text-slate-600 flex items-start gap-2"
+                      >
                         <span className="text-amber-600 font-bold flex-shrink-0">
                           •
                         </span>
@@ -155,7 +158,9 @@ export function RoadmapTimeline({ roadmap }: RoadmapTimelineProps) {
       {/* Risk Factors and Support */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 border-t border-slate-200 pt-4 sm:pt-6">
         <div className="space-y-2 sm:space-y-3">
-          <p className="heading-4 text-amber-700 text-lg sm:text-2xl">Risk Factors</p>
+          <p className="heading-4 text-amber-700 text-lg sm:text-2xl">
+            Risk Factors
+          </p>
           <ul className="space-y-1 sm:space-y-2">
             {roadmap.riskFactors.map((risk, i) => (
               <li
@@ -172,7 +177,9 @@ export function RoadmapTimeline({ roadmap }: RoadmapTimelineProps) {
         </div>
         {roadmap.supportResources && roadmap.supportResources.length > 0 && (
           <div className="space-y-2 sm:space-y-3">
-            <p className="heading-4 text-emerald-700 text-lg sm:text-2xl">Support Resources</p>
+            <p className="heading-4 text-emerald-700 text-lg sm:text-2xl">
+              Support Resources
+            </p>
             <ul className="space-y-1 sm:space-y-2">
               {roadmap.supportResources.map((resource, i) => (
                 <li

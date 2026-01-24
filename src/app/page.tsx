@@ -3,39 +3,39 @@
  * Introduction and entry point to the application
  */
 
-import Link from "next/link";
+import Link from 'next/link';
 import {
   ArrowRight,
   Sparkles,
   Target,
   BookOpen,
   TrendingUp,
-} from "lucide-react";
+} from 'lucide-react';
 
 export default function Home() {
   const features = [
     {
       icon: Sparkles,
-      title: "AI-Powered Analysis",
+      title: 'AI-Powered Analysis',
       description:
-        "Your resume analyzed by advanced AI to extract your unique career profile",
+        'Your resume analyzed by advanced AI to extract your unique career profile',
     },
     {
       icon: Target,
-      title: "Strategic Paths",
+      title: 'Strategic Paths',
       description:
-        "Discover 4-6 thoughtfully curated career paths aligned with your goals",
+        'Discover 4-6 thoughtfully curated career paths aligned with your goals',
     },
     {
       icon: BookOpen,
-      title: "Skill Gaps",
+      title: 'Skill Gaps',
       description:
-        "Understand exactly what you need to learn for your next role",
+        'Understand exactly what you need to learn for your next role',
     },
     {
       icon: TrendingUp,
-      title: "Actionable Roadmap",
-      description: "Month-by-month plan with concrete projects and milestones",
+      title: 'Actionable Roadmap',
+      description: 'Month-by-month plan with concrete projects and milestones',
     },
   ];
 
@@ -123,7 +123,7 @@ export default function Home() {
           <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
             <h3 className="heading-2">Not a Job Portal</h3>
             <p className="text-body text-slate-600">
-              NextRole is a{" "}
+              NextRole is a{' '}
               <strong>career intelligence and planning tool</strong> designed
               for professionals who want clarity on their future. We&apos;re not
               here to find you jobs&mdash;we&apos;re here to help you become the

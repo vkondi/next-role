@@ -3,8 +3,8 @@
  * Lightweight version showing only essential information in carousel
  */
 
-import type { CareerPathMinimal } from "@/lib/types";
-import { TrendingUp, Zap } from "lucide-react";
+import type { CareerPathMinimal } from '@/lib/types';
+import { TrendingUp, Zap } from 'lucide-react';
 
 interface CareerPathCardMinimalProps {
   path: CareerPathMinimal;
@@ -22,8 +22,8 @@ export function CareerPathCardMinimal({
       onClick={() => onSelect?.(path.roleId)}
       className={`flex-shrink-0 w-80 card p-5 cursor-pointer transition-all ${
         isSelected
-          ? "ring-2 ring-emerald-500 shadow-lg bg-emerald-50"
-          : "hover:shadow-md hover:bg-slate-50"
+          ? 'ring-2 ring-emerald-500 shadow-lg bg-emerald-50'
+          : 'hover:shadow-md hover:bg-slate-50'
       }`}
     >
       <div className="space-y-4 h-full flex flex-col">
