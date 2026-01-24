@@ -370,7 +370,13 @@ export async function generateRoadmap(
   );
 
   const systemMessage = getSystemMessage("roadmapGenerator");
-  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.ROADMAP_GENERATOR, systemMessage);
+  const response = await callAI(
+    aiProvider, 
+    prompt, 
+    TOKEN_CONFIG.ROADMAP_GENERATOR, 
+    systemMessage,
+    CareerRoadmapSchema  // Pass schema for Gemini structured output
+  );
   const roadmap = await parseRoadmapGeneratorResponse(response);
 
   return roadmap;

@@ -5,6 +5,7 @@ import { callDeepseekAPI } from "./deepseek";
 import { callGeminiAPI } from "./gemini";
 import { getLogger } from "./logger";
 import type { NextRequest } from "next/server";
+import type { z } from "zod";
 
 const log = getLogger("API:ProviderSelector");
 
@@ -52,13 +53,16 @@ export async function callAI(
   provider: AIProvider,
   prompt: string,
   maxTokens: number = TOKEN_CONFIG.DEFAULT,
-  systemMessage?: string
+  systemMessage?: string,
+  responseSchema?: z.ZodTypeAny
 ): Promise<string> {
-  log.debug({ provider, maxTokens, hasSystemMessage: !!systemMessage }, "Routing AI call to provider");
+  log.debug({ provider, maxTokens, hasSystemMessage: !!systemMessage, hasResponseSchema: !!responseSchema }, "Routing AI call to provider");
 
   if (provider === "gemini") {
-    return callGeminiAPI(prompt, maxTokens, systemMessage);
+    // Gemini supports structured output via responseSchema
+    return callGeminiAPI(prompt, maxTokens, systemMessage, responseSchema);
   } else if (provider === "deepseek") {
+    // Deepseek doesn't support responseSchema - uses JSON mode only
     return callDeepseekAPI(prompt, maxTokens, systemMessage);
   } else {
     const errorMsg = `Unknown AI provider: ${provider}. Use 'deepseek' or 'gemini'.`;

@@ -4,6 +4,8 @@ import { Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
 import { GEMINI_CONFIG } from "@/lib/config/appConfig";
 import { getLogger } from "./logger";
+import { convertZodToJsonSchema } from "@/lib/utils/zodToJsonSchema";
+import type { z } from "zod";
 
 const log = getLogger("API:Gemini");
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -29,6 +31,8 @@ interface GeminiRequest {
     temperature: number;
     topP: number;
     maxOutputTokens: number;
+    responseMimeType?: string;
+    responseSchema?: any;
     thinkingConfig: {
       thinkingLevel: string;
     };
@@ -48,7 +52,8 @@ interface GeminiResponse {
 export async function callGeminiAPI(
   prompt: string,
   maxTokens: number = 1000,
-  systemMessage?: string
+  systemMessage?: string,
+  responseSchema?: z.ZodTypeAny
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     const errorMsg =
@@ -62,6 +67,7 @@ export async function callGeminiAPI(
       model: GEMINI_MODEL,
       maxTokens,
       hasSystemMessage: !!systemMessage,
+      hasResponseSchema: !!responseSchema,
     },
     "Calling Gemini API"
   );
@@ -97,6 +103,18 @@ export async function callGeminiAPI(
           },
         ],
       };
+    }
+
+    // Add structured output schema if provided (Gemini-specific feature)
+    if (responseSchema) {
+      const jsonSchema = convertZodToJsonSchema(responseSchema);
+      payload.generationConfig.responseMimeType = "application/json";
+      payload.generationConfig.responseSchema = jsonSchema;
+      
+      log.debug(
+        { schemaType: responseSchema.constructor.name },
+        "Using structured JSON schema for Gemini response"
+      );
     }
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {

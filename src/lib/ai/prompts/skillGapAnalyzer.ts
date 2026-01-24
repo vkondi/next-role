@@ -223,7 +223,13 @@ export async function analyzeSkillGaps(
 ): Promise<SkillGapAnalysis> {
   const prompt = createSkillGapAnalyzerPrompt(resumeProfile, careerPath);
   const systemMessage = getSystemMessage("skillGapAnalyzer");
-  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.SKILL_GAP_ANALYZER, systemMessage);
+  const response = await callAI(
+    aiProvider, 
+    prompt, 
+    TOKEN_CONFIG.SKILL_GAP_ANALYZER, 
+    systemMessage,
+    SkillGapAnalysisSchema  // Pass schema for Gemini structured output
+  );
   const analysis = await parseSkillGapAnalyzerResponse(response);
   return analysis;
 }

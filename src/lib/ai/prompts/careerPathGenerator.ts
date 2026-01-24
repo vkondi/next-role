@@ -297,7 +297,13 @@ export async function generateCareerPathsMinimal(
   );
   const prompt = createCareerPathMinimalPrompt(resumeProfile, numberOfPaths);
   const systemMessage = getSystemMessage("careerPathGenerator");
-  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.CAREER_PATH_GENERATOR, systemMessage);
+  const response = await callAI(
+    aiProvider, 
+    prompt, 
+    TOKEN_CONFIG.CAREER_PATH_GENERATOR, 
+    systemMessage,
+    z.array(CareerPathMinimalSchema)  // Pass schema for Gemini structured output
+  );
   const paths = await parseCareerPathMinimalResponse(response);
   log.info({ count: paths.length }, "Career paths generated successfully");
   return paths;
@@ -320,7 +326,22 @@ export async function generateCareerPathDetails(
     pathBasic.roleName
   );
   const systemMessage = getSystemMessage("careerPathGenerator");
-  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.CAREER_PATH_GENERATOR, systemMessage);
+  
+  // Schema for partial details response
+  const detailsSchema = z.object({
+    effortLevel: z.enum(["Low", "Medium", "High"]),
+    rewardPotential: z.enum(["Low", "Medium", "High"]),
+    why: z.string(),
+    desc: z.string()
+  });
+  
+  const response = await callAI(
+    aiProvider, 
+    prompt, 
+    TOKEN_CONFIG.CAREER_PATH_GENERATOR, 
+    systemMessage,
+    detailsSchema  // Pass schema for Gemini structured output
+  );
   const details = await parseCareerPathDetailsResponse(response);
   log.info({ role: pathBasic.roleName }, "Career path details generated");
   return {

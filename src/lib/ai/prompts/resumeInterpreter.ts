@@ -286,7 +286,13 @@ function normalizeArray(value: any): string[] {
 export async function interpretResume(resumeText: string, aiProvider: AIProvider = "deepseek"): Promise<ResumeProfile> {
   const prompt = createResumeInterpreterPrompt(resumeText);
   const systemMessage = getSystemMessage("resumeInterpreter");
-  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.RESUME_INTERPRETER, systemMessage);
+  const response = await callAI(
+    aiProvider, 
+    prompt, 
+    TOKEN_CONFIG.RESUME_INTERPRETER, 
+    systemMessage,
+    ResumeProfileSchema  // Pass schema for Gemini structured output
+  );
   const profile = await parseResumeInterpreterResponse(response, aiProvider);
   
   return profile;
