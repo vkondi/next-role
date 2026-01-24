@@ -51,14 +51,15 @@ export async function getAIProviderFromRequest(
 export async function callAI(
   provider: AIProvider,
   prompt: string,
-  maxTokens: number = TOKEN_CONFIG.DEFAULT
+  maxTokens: number = TOKEN_CONFIG.DEFAULT,
+  systemMessage?: string
 ): Promise<string> {
-  log.debug({ provider, maxTokens }, "Routing AI call to provider");
+  log.debug({ provider, maxTokens, hasSystemMessage: !!systemMessage }, "Routing AI call to provider");
 
   if (provider === "gemini") {
-    return callGeminiAPI(prompt, maxTokens);
+    return callGeminiAPI(prompt, maxTokens, systemMessage);
   } else if (provider === "deepseek") {
-    return callDeepseekAPI(prompt, maxTokens);
+    return callDeepseekAPI(prompt, maxTokens, systemMessage);
   } else {
     const errorMsg = `Unknown AI provider: ${provider}. Use 'deepseek' or 'gemini'.`;
     log.error({ provider }, "Unknown AI provider specified");

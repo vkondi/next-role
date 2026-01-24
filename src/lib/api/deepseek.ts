@@ -21,6 +21,9 @@ interface DeepseekRequest {
   temperature: number;
   top_p: number;
   max_tokens?: number;
+  response_format?: {
+    type: "json_object";
+  };
 }
 
 interface DeepseekResponse {
@@ -31,27 +34,45 @@ interface DeepseekResponse {
   }>;
 }
 
-export async function callDeepseekAPI(prompt: string, maxTokens: number = 1000): Promise<string> {
+export async function callDeepseekAPI(
+  prompt: string,
+  maxTokens: number = 1000,
+  systemMessage?: string
+): Promise<string> {
   if (!DEEPSEEK_API_KEY) {
     const errorMsg = "Deepseek API key not configured. Please set DEEPSEEK_API_KEY environment variable.";
     log.error(errorMsg);
     throw new Error(errorMsg);
   }
 
-  log.info({ model: "deepseek-chat", maxTokens }, "Calling Deepseek API");
+  log.debug({ model: "deepseek-chat", maxTokens, hasSystemMessage: !!systemMessage }, "Calling Deepseek API");
 
   try {
+    const messages: Array<{ role: "user" | "system" | "assistant"; content: string }> = [];
+
+    // Add system message if provided
+    if (systemMessage) {
+      messages.push({
+        role: "system",
+        content: systemMessage,
+      });
+    }
+
+    // Add user prompt
+    messages.push({
+      role: "user",
+      content: prompt,
+    });
+
     const payload: DeepseekRequest = {
       model: "deepseek-chat",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+      messages,
       temperature: 0.01,
       top_p: 0.3,
       max_tokens: maxTokens,
+      response_format: {
+        type: "json_object",
+      },
     };
 
     const response = await fetch(DEEPSEEK_API_URL, {

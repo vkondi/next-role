@@ -14,6 +14,7 @@ import { callAI } from "@/lib/api/aiProvider";
 import type { AIProvider } from "@/lib/api/aiProvider";
 import { ROADMAP_CONFIG, TOKEN_CONFIG } from "@/lib/config/appConfig";
 import { getLogger } from "@/lib/api/logger";
+import { getSystemMessage } from "./systemMessages";
 import { formatMonthRange } from "@/lib/utils/timelineUtils";
 import {
   removeMarkdownBlocks,
@@ -368,7 +369,8 @@ export async function generateRoadmap(
     timelineMonths
   );
 
-  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.ROADMAP_GENERATOR);
+  const systemMessage = getSystemMessage("roadmapGenerator");
+  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.ROADMAP_GENERATOR, systemMessage);
   const roadmap = await parseRoadmapGeneratorResponse(response);
 
   return roadmap;

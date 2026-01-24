@@ -5,6 +5,7 @@ import type { ResumeProfile } from "../schemas";
 import { callAI } from "@/lib/api/aiProvider";
 import type { AIProvider } from "@/lib/api/aiProvider";
 import { TOKEN_CONFIG } from "@/lib/config/appConfig";
+import { getSystemMessage } from "./systemMessages";
 
 export function createResumeInterpreterPrompt(
   resumeText: string
@@ -284,7 +285,8 @@ function normalizeArray(value: any): string[] {
 
 export async function interpretResume(resumeText: string, aiProvider: AIProvider = "deepseek"): Promise<ResumeProfile> {
   const prompt = createResumeInterpreterPrompt(resumeText);
-  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.RESUME_INTERPRETER);
+  const systemMessage = getSystemMessage("resumeInterpreter");
+  const response = await callAI(aiProvider, prompt, TOKEN_CONFIG.RESUME_INTERPRETER, systemMessage);
   const profile = await parseResumeInterpreterResponse(response, aiProvider);
   
   return profile;

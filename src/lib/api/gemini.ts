@@ -14,6 +14,11 @@ const httpAgent = new HttpAgent({ keepAlive: true, maxSockets: 10 });
 const httpsAgent = new HttpsAgent({ keepAlive: true, maxSockets: 10 });
 
 interface GeminiRequest {
+  systemInstruction?: {
+    parts: Array<{
+      text: string;
+    }>;
+  };
   contents: Array<{
     role: string;
     parts: Array<{
@@ -24,6 +29,9 @@ interface GeminiRequest {
     temperature: number;
     topP: number;
     maxOutputTokens: number;
+    thinkingConfig: {
+      thinkingLevel: string;
+    };
   };
 }
 
@@ -37,17 +45,37 @@ interface GeminiResponse {
   }>;
 }
 
-export async function callGeminiAPI(prompt: string, maxTokens: number = 1000): Promise<string> {
+export async function callGeminiAPI(
+  prompt: string,
+  maxTokens: number = 1000,
+  systemMessage?: string
+): Promise<string> {
   if (!GEMINI_API_KEY) {
-    const errorMsg = "Gemini API key not configured. Please set GEMINI_API_KEY environment variable.";
+    const errorMsg =
+      "Gemini API key not configured. Please set GEMINI_API_KEY environment variable.";
     log.error(errorMsg);
     throw new Error(errorMsg);
   }
 
-  log.info({ model: GEMINI_MODEL, maxTokens }, "Calling Gemini API");
+  log.debug(
+    {
+      model: GEMINI_MODEL,
+      maxTokens,
+      hasSystemMessage: !!systemMessage,
+    },
+    "Calling Gemini API"
+  );
 
   try {
     const payload: GeminiRequest = {
+      generationConfig: {
+        temperature: 0.01,
+        topP: 0.3,
+        maxOutputTokens: maxTokens,
+        thinkingConfig: {
+          thinkingLevel: "low",
+        },
+      },
       contents: [
         {
           role: "user",
@@ -58,12 +86,18 @@ export async function callGeminiAPI(prompt: string, maxTokens: number = 1000): P
           ],
         },
       ],
-      generationConfig: {
-        temperature: 0.01,
-        topP: 0.3,
-        maxOutputTokens: maxTokens,
-      },
     };
+
+    // Add system instruction if provided
+    if (systemMessage) {
+      payload.systemInstruction = {
+        parts: [
+          {
+            text: systemMessage,
+          },
+        ],
+      };
+    }
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
@@ -77,15 +111,26 @@ export async function callGeminiAPI(prompt: string, maxTokens: number = 1000): P
 
     if (!response.ok) {
       const errorData = await response.json();
-      const errorMsg = `Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`;
-      log.error({ status: response.status, error: errorData }, "Gemini API request failed");
+      const errorMsg = `Gemini API error: ${response.status} - ${JSON.stringify(
+        errorData
+      )}`;
+      log.error(
+        { status: response.status, error: errorData },
+        "Gemini API request failed"
+      );
       throw new Error(errorMsg);
     }
 
     const data = (await response.json()) as GeminiResponse;
 
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      log.warn("Invalid Gemini API response format - missing candidates or content");
+    if (
+      !data.candidates ||
+      !data.candidates[0] ||
+      !data.candidates[0].content
+    ) {
+      log.warn(
+        "Invalid Gemini API response format - missing candidates or content"
+      );
       throw new Error("Invalid Gemini API response format");
     }
 
@@ -95,10 +140,15 @@ export async function callGeminiAPI(prompt: string, maxTokens: number = 1000): P
       throw new Error("No text content in Gemini API response");
     }
 
-    log.debug({ responseLength: textParts[0].text.length }, "Gemini API response received successfully");
+    log.debug(
+      { responseLength: textParts[0].text.length },
+      "Gemini API response received successfully"
+    );
     return textParts[0].text;
   } catch (error) {
-    const errorMsg = `Failed to call Gemini API: ${error instanceof Error ? error.message : String(error)}`;
+    const errorMsg = `Failed to call Gemini API: ${
+      error instanceof Error ? error.message : String(error)
+    }`;
     log.error(
       { error: error instanceof Error ? error.message : String(error) },
       "Gemini API call failed with exception"

@@ -79,12 +79,12 @@ export const ROADMAP_CONFIG = {
  * - MAX_TOKENS_ROADMAP: Roadmap generator
  */
 export const TOKEN_CONFIG = {
-  DEFAULT: parseInt(process.env.MAX_TOKENS_DEFAULT || "1000", 10),
-  RESUME_INTERPRETER: parseInt(process.env.MAX_TOKENS_RESUME || "1200", 10),
+  DEFAULT: parseInt(process.env.MAX_TOKENS_DEFAULT || "1500", 10),
+  RESUME_INTERPRETER: parseInt(process.env.MAX_TOKENS_RESUME || "1600", 10),
   CAREER_PATH_GENERATOR: parseInt(
-    process.env.MAX_TOKENS_CAREER_PATH || "1500",
+    process.env.MAX_TOKENS_CAREER_PATH || "2000",
     10
   ),
-  SKILL_GAP_ANALYZER: parseInt(process.env.MAX_TOKENS_SKILL_GAP || "1100", 10),
-  ROADMAP_GENERATOR: parseInt(process.env.MAX_TOKENS_ROADMAP || "1800", 10),
+  SKILL_GAP_ANALYZER: parseInt(process.env.MAX_TOKENS_SKILL_GAP || "1600", 10),
+  ROADMAP_GENERATOR: parseInt(process.env.MAX_TOKENS_ROADMAP || "2500", 10),
 } as const;

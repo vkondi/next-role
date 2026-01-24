@@ -111,27 +111,26 @@ Control token limits for each AI operation to optimize API costs and handle diff
 
 ```bash
 # Default token limit (fallback for all operations)
-MAX_TOKENS_DEFAULT=1000
+MAX_TOKENS_DEFAULT=1500
 
 # Operation-specific token limits
-MAX_TOKENS_RESUME=1200              # Resume interpretation
-MAX_TOKENS_CAREER_PATH=1500         # Career path generation
-MAX_TOKENS_SKILL_GAP=1100           # Skill gap analysis
-MAX_TOKENS_ROADMAP=1800             # Career roadmap (increased for complexity)
+MAX_TOKENS_RESUME=1600               # Resume interpretation
+MAX_TOKENS_CAREER_PATH=2000          # Career path generation
+MAX_TOKENS_SKILL_GAP=1600            # Skill gap analysis
+MAX_TOKENS_ROADMAP=2500              # Career roadmap
 ```
 
-**Why Different Limits?**
-- Resume interpretation: Simple extraction → 1000 tokens usually sufficient
-- Career path generation: Requires analysis → 1000-1500 tokens recommended
-- Skill gap analysis: Moderate complexity → 1000-1500 tokens recommended
-- Roadmap generation: High complexity (2-5 phases with details) → 1800+ tokens recommended
+**What These Control:**
+- Resume interpretation: Extraction and structured analysis
+- Career path generation: Analysis with multiple options and recommendations
+- Skill gap analysis: Assessment of gaps and learning resources
+- Roadmap generation: Multi-phase transition plans with timelines and milestones
 
 **Token Tuning Tips:**
-- Start with defaults and monitor AI responses
+- Start with defaults and monitor AI responses for completeness
 - If responses are truncated/incomplete: increase relevant MAX_TOKENS variable by 200-300
-- Monitor API costs and adjust down if responses are verbose
-- Deepseek providers benefit from higher limits (they charge per token)
-- Gemini's free tier has monthly token quota to consider
+- Monitor API costs and adjust if needed
+- Deepseek charges per token; Gemini's free tier has monthly quota to consider
 
 ### Minimal Setup
 
