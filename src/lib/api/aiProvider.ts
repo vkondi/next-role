@@ -1,19 +1,19 @@
 /** AI Provider selector - routes to Deepseek or Gemini based on configuration */
 
-import { TOKEN_CONFIG } from "../config/appConfig";
-import { callDeepseekAPI } from "./deepseek";
-import { callGeminiAPI } from "./gemini";
-import { getLogger } from "./logger";
-import type { NextRequest } from "next/server";
-import type { z } from "zod";
+import { TOKEN_CONFIG } from '../config/appConfig';
+import { callDeepseekAPI } from './deepseek';
+import { callGeminiAPI } from './gemini';
+import { getLogger } from './logger';
+import type { NextRequest } from 'next/server';
+import type { z } from 'zod';
 
-const log = getLogger("API:ProviderSelector");
+const log = getLogger('API:ProviderSelector');
 
-export type AIProvider = "deepseek" | "gemini";
+export type AIProvider = 'deepseek' | 'gemini';
 
 // Server-side: read from environment variable (default fallback is gemini)
 const SERVER_AI_PROVIDER = (
-  process.env.AI_PROVIDER || "gemini"
+  process.env.AI_PROVIDER || 'gemini'
 ).toLowerCase() as AIProvider;
 
 // Client-side: provider is managed by SettingsContext and passed via request body
@@ -25,10 +25,12 @@ export function getServerAIProvider(): AIProvider {
 }
 
 /** Extract AI provider from request body or use server default */
-export function getAIProviderFromBody(body: any): AIProvider {
+export function getAIProviderFromBody(body: {
+  aiProvider?: string;
+}): AIProvider {
   if (
     body?.aiProvider &&
-    (body.aiProvider === "deepseek" || body.aiProvider === "gemini")
+    (body.aiProvider === 'deepseek' || body.aiProvider === 'gemini')
   ) {
     return body.aiProvider;
   }
@@ -42,7 +44,7 @@ export async function getAIProviderFromRequest(
   try {
     const body = await request.clone().json();
     return getAIProviderFromBody(body);
-  } catch (e) {
+  } catch {
     // If body is not JSON or doesn't have aiProvider, fall through to default
   }
   return getServerAIProvider();
@@ -56,17 +58,25 @@ export async function callAI(
   systemMessage?: string,
   responseSchema?: z.ZodTypeAny
 ): Promise<string> {
-  log.debug({ provider, maxTokens, hasSystemMessage: !!systemMessage, hasResponseSchema: !!responseSchema }, "Routing AI call to provider");
+  log.debug(
+    {
+      provider,
+      maxTokens,
+      hasSystemMessage: !!systemMessage,
+      hasResponseSchema: !!responseSchema,
+    },
+    'Routing AI call to provider'
+  );
 
-  if (provider === "gemini") {
+  if (provider === 'gemini') {
     // Gemini supports structured output via responseSchema
     return callGeminiAPI(prompt, maxTokens, systemMessage, responseSchema);
-  } else if (provider === "deepseek") {
+  } else if (provider === 'deepseek') {
     // Deepseek doesn't support responseSchema - uses JSON mode only
     return callDeepseekAPI(prompt, maxTokens, systemMessage);
   } else {
     const errorMsg = `Unknown AI provider: ${provider}. Use 'deepseek' or 'gemini'.`;
-    log.error({ provider }, "Unknown AI provider specified");
+    log.error({ provider }, 'Unknown AI provider specified');
     throw new Error(errorMsg);
   }
 }

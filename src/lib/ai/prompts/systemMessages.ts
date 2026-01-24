@@ -1,11 +1,15 @@
 /** System messages for AI providers - consistent across Deepseek and Gemini */
 
-export type PromptType = 'resumeInterpreter' | 'careerPathGenerator' | 'skillGapAnalyzer' | 'roadmapGenerator';
+export type PromptType =
+  | 'resumeInterpreter'
+  | 'careerPathGenerator'
+  | 'skillGapAnalyzer'
+  | 'roadmapGenerator';
 
 /**
  * System messages that define the AI's role and behavior for each prompt type.
  * These are used consistently across both Deepseek and Gemini APIs.
- * 
+ *
  */
 const SYSTEM_MESSAGES: Record<PromptType, string> = {
   resumeInterpreter: `You are an expert resume analyzer. Extract and structure career profile data. Identify skills, experience, industry background, and certifications. Return ONLY valid JSON with no additional text.`,

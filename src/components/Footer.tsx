@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();

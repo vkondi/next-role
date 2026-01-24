@@ -2,23 +2,23 @@
  * Optimized for both local development and Vercel serverless deployment
  */
 
-import pino from "pino";
+import pino from 'pino';
 
-type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal";
+type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 /**
  * Get the configured log level from environment or use default (ERROR)
  * Valid levels: trace, debug, info, warn, error, fatal
  */
 function getLogLevel(): LogLevel {
-  const envLevel = (process.env.LOG_LEVEL || "error").toLowerCase();
+  const envLevel = (process.env.LOG_LEVEL || 'error').toLowerCase();
   const validLevels: LogLevel[] = [
-    "trace",
-    "debug",
-    "info",
-    "warn",
-    "error",
-    "fatal",
+    'trace',
+    'debug',
+    'info',
+    'warn',
+    'error',
+    'fatal',
   ];
 
   if (validLevels.includes(envLevel as LogLevel)) {
@@ -26,7 +26,7 @@ function getLogLevel(): LogLevel {
   }
 
   console.warn(`Invalid LOG_LEVEL: ${envLevel}, defaulting to 'error'`);
-  return "error";
+  return 'error';
 }
 
 /**
@@ -42,7 +42,7 @@ const logger = pino({
   // Vercel-optimized settings
   transport: undefined, // No worker threads - critical for serverless
   base: {
-    environment: process.env.NODE_ENV || "development",
+    environment: process.env.NODE_ENV || 'development',
   },
   timestamp: pino.stdTimeFunctions.isoTime, // ISO 8601 format - standard for log aggregation
   formatters: {

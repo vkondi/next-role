@@ -19,7 +19,7 @@ export const TIMELINE_CONFIG = {
 
 export const SKILL_GAP_CONFIG = {
   MAX_DISPLAYED_SKILLS: 8,
-  MIN_HIGHLIGHT_IMPORTANCE: "Medium" as const,
+  MIN_HIGHLIGHT_IMPORTANCE: 'Medium' as const,
 } as const;
 
 export const UI_CONFIG = {
@@ -34,9 +34,9 @@ export const API_CONFIG = {
 } as const;
 
 export const GEMINI_CONFIG = {
-  MODEL: (process.env.GEMINI_MODEL || "gemini-2.5-flash") as string,
-  DEFAULT_MODEL: "gemini-2.5-flash" as const,
-  SUPPORTED_MODELS: ["gemini-2.5-flash", "gemini-3-flash-preview"] as const,
+  MODEL: (process.env.GEMINI_MODEL || 'gemini-2.5-flash') as string,
+  DEFAULT_MODEL: 'gemini-2.5-flash' as const,
+  SUPPORTED_MODELS: ['gemini-2.5-flash', 'gemini-3-flash-preview'] as const,
 } as const;
 
 export const ROADMAP_CONFIG = {
@@ -79,12 +79,12 @@ export const ROADMAP_CONFIG = {
  * - MAX_TOKENS_ROADMAP: Roadmap generator
  */
 export const TOKEN_CONFIG = {
-  DEFAULT: parseInt(process.env.MAX_TOKENS_DEFAULT || "1500", 10),
-  RESUME_INTERPRETER: parseInt(process.env.MAX_TOKENS_RESUME || "1600", 10),
+  DEFAULT: parseInt(process.env.MAX_TOKENS_DEFAULT || '1500', 10),
+  RESUME_INTERPRETER: parseInt(process.env.MAX_TOKENS_RESUME || '1600', 10),
   CAREER_PATH_GENERATOR: parseInt(
-    process.env.MAX_TOKENS_CAREER_PATH || "2000",
+    process.env.MAX_TOKENS_CAREER_PATH || '2000',
     10
   ),
-  SKILL_GAP_ANALYZER: parseInt(process.env.MAX_TOKENS_SKILL_GAP || "1600", 10),
-  ROADMAP_GENERATOR: parseInt(process.env.MAX_TOKENS_ROADMAP || "2500", 10),
+  SKILL_GAP_ANALYZER: parseInt(process.env.MAX_TOKENS_SKILL_GAP || '1600', 10),
+  ROADMAP_GENERATOR: parseInt(process.env.MAX_TOKENS_ROADMAP || '2500', 10),
 } as const;

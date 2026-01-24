@@ -1,13 +1,16 @@
 /** Google Gemini API integration for AI-powered career analysis */
 
-import { Agent as HttpAgent } from "http";
-import { Agent as HttpsAgent } from "https";
-import { GEMINI_CONFIG } from "@/lib/config/appConfig";
-import { getLogger } from "./logger";
-import { convertZodToJsonSchema } from "@/lib/utils/zodToJsonSchema";
-import type { z } from "zod";
+import { Agent as HttpAgent } from 'http';
+import { Agent as HttpsAgent } from 'https';
+import { GEMINI_CONFIG } from '@/lib/config/appConfig';
+import { getLogger } from './logger';
+import {
+  convertZodToJsonSchema,
+  type JsonSchemaProperty,
+} from '@/lib/utils/zodToJsonSchema';
+import type { z } from 'zod';
 
-const log = getLogger("API:Gemini");
+const log = getLogger('API:Gemini');
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = GEMINI_CONFIG.MODEL;
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -32,7 +35,7 @@ interface GeminiRequest {
     topP: number;
     maxOutputTokens: number;
     responseMimeType?: string;
-    responseSchema?: any;
+    responseSchema?: JsonSchemaProperty;
     thinkingConfig: {
       thinkingLevel: string;
     };
@@ -57,7 +60,7 @@ export async function callGeminiAPI(
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     const errorMsg =
-      "Gemini API key not configured. Please set GEMINI_API_KEY environment variable.";
+      'Gemini API key not configured. Please set GEMINI_API_KEY environment variable.';
     log.error(errorMsg);
     throw new Error(errorMsg);
   }
@@ -69,7 +72,7 @@ export async function callGeminiAPI(
       hasSystemMessage: !!systemMessage,
       hasResponseSchema: !!responseSchema,
     },
-    "Calling Gemini API"
+    'Calling Gemini API'
   );
 
   try {
@@ -79,12 +82,12 @@ export async function callGeminiAPI(
         topP: 0.3,
         maxOutputTokens: maxTokens,
         thinkingConfig: {
-          thinkingLevel: "low",
+          thinkingLevel: 'low',
         },
       },
       contents: [
         {
-          role: "user",
+          role: 'user',
           parts: [
             {
               text: prompt,
@@ -108,23 +111,23 @@ export async function callGeminiAPI(
     // Add structured output schema if provided (Gemini-specific feature)
     if (responseSchema) {
       const jsonSchema = convertZodToJsonSchema(responseSchema);
-      payload.generationConfig.responseMimeType = "application/json";
+      payload.generationConfig.responseMimeType = 'application/json';
       payload.generationConfig.responseSchema = jsonSchema;
-      
+
       log.debug(
         { schemaType: responseSchema.constructor.name },
-        "Using structured JSON schema for Gemini response"
+        'Using structured JSON schema for Gemini response'
       );
     }
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
       // @ts-expect-error - Node.js fetch doesn't have agent type in some versions
-      agent: GEMINI_API_URL.startsWith("https") ? httpsAgent : httpAgent,
+      agent: GEMINI_API_URL.startsWith('https') ? httpsAgent : httpAgent,
     });
 
     if (!response.ok) {
@@ -134,7 +137,7 @@ export async function callGeminiAPI(
       )}`;
       log.error(
         { status: response.status, error: errorData },
-        "Gemini API request failed"
+        'Gemini API request failed'
       );
       throw new Error(errorMsg);
     }
@@ -147,20 +150,20 @@ export async function callGeminiAPI(
       !data.candidates[0].content
     ) {
       log.warn(
-        "Invalid Gemini API response format - missing candidates or content"
+        'Invalid Gemini API response format - missing candidates or content'
       );
-      throw new Error("Invalid Gemini API response format");
+      throw new Error('Invalid Gemini API response format');
     }
 
     const textParts = data.candidates[0].content.parts;
     if (!textParts || textParts.length === 0) {
-      log.warn("Invalid Gemini API response format - no text parts");
-      throw new Error("No text content in Gemini API response");
+      log.warn('Invalid Gemini API response format - no text parts');
+      throw new Error('No text content in Gemini API response');
     }
 
     log.debug(
       { responseLength: textParts[0].text.length },
-      "Gemini API response received successfully"
+      'Gemini API response received successfully'
     );
     return textParts[0].text;
   } catch (error) {
@@ -169,7 +172,7 @@ export async function callGeminiAPI(
     }`;
     log.error(
       { error: error instanceof Error ? error.message : String(error) },
-      "Gemini API call failed with exception"
+      'Gemini API call failed with exception'
     );
     throw new Error(errorMsg);
   }

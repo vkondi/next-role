@@ -8,7 +8,8 @@ export function validateResumeText(text: string): {
   if (!text || text.trim().length < 100) {
     return {
       isValid: false,
-      error: "Resume text is too short. Please provide at least 100 characters of content.",
+      error:
+        'Resume text is too short. Please provide at least 100 characters of content.',
     };
   }
 
@@ -16,19 +17,20 @@ export function validateResumeText(text: string): {
   if (trimmed.split(/\s+/).length < 10) {
     return {
       isValid: false,
-      error: "Resume text is too short. Please provide more details about your experience, skills, and background.",
+      error:
+        'Resume text is too short. Please provide more details about your experience, skills, and background.',
     };
   }
 
   // Check for basic resume indicators
   const lowerText = text.toLowerCase();
   const resumeIndicators = [
-    "experience",
-    "skills",
-    "education",
-    "work",
-    "role",
-    "years",
+    'experience',
+    'skills',
+    'education',
+    'work',
+    'role',
+    'years',
   ];
   const foundIndicators = resumeIndicators.filter((indicator) =>
     lowerText.includes(indicator)

@@ -26,8 +26,8 @@ export interface CareerPath {
   roleName: string;
   description: string;
   marketDemandScore: number; // 0-100
-  effortLevel: "Low" | "Medium" | "High"; // Effort to transition
-  rewardPotential: "Low" | "Medium" | "High"; // Career growth/salary potential
+  effortLevel: 'Low' | 'Medium' | 'High'; // Effort to transition
+  rewardPotential: 'Low' | 'Medium' | 'High'; // Career growth/salary potential
   reasoning: string; // Why this path makes sense for the user
   requiredSkills: string[];
   industryAlignment: number; // 0-100, how well it aligns with user's background
@@ -52,7 +52,7 @@ export interface SkillGapAnalysis {
   careerPathId: string;
   careerPathName: string;
   skillGaps: SkillGap[];
-  overallGapSeverity: "Low" | "Medium" | "High";
+  overallGapSeverity: 'Low' | 'Medium' | 'High';
   estimatedTimeToClose: string; // e.g., "3-6 months"
   summary: string;
 }
@@ -62,9 +62,9 @@ export interface SkillGapAnalysis {
  */
 export interface SkillGap {
   skillName: string;
-  currentLevel: "None" | "Beginner" | "Intermediate" | "Advanced" | "Expert";
-  requiredLevel: "None" | "Beginner" | "Intermediate" | "Advanced" | "Expert";
-  importance: "Low" | "Medium" | "High";
+  currentLevel: 'None' | 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
+  requiredLevel: 'None' | 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
+  importance: 'Low' | 'Medium' | 'High';
   learningResources?: string[];
 }
 
