@@ -3,6 +3,7 @@
  * Introduction and entry point to the application
  */
 
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -11,8 +12,47 @@ import {
   BookOpen,
   TrendingUp,
 } from 'lucide-react';
+import { JsonLd } from '@/components';
+
+export const metadata: Metadata = {
+  title: 'NextRole - AI Career Strategy Copilot',
+  description:
+    'AI-powered career planning tool that analyzes resumes, generates strategic career paths, identifies skill gaps, and creates actionable roadmaps for professionals.',
+  openGraph: {
+    title: 'NextRole - AI Career Strategy Copilot',
+    description:
+      'AI-powered career planning tool that analyzes resumes, generates strategic career paths, identifies skill gaps, and creates actionable roadmaps for professionals.',
+    type: 'website',
+  },
+};
 
 export default function Home() {
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://my-next-role.vercel.app';
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'NextRole',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Any',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+    description:
+      'AI-powered career strategy copilot that analyzes resumes, generates personalized career paths, identifies skill gaps, and creates actionable month-by-month roadmaps.',
+    url: siteUrl,
+    featureList: [
+      'AI-Powered Resume Analysis',
+      'Strategic Career Path Generation',
+      'Skill Gap Identification',
+      'Personalized Career Roadmaps',
+    ],
+    screenshot: `${siteUrl}/android-chrome-512x512.png`,
+  };
+
   const features = [
     {
       icon: Sparkles,
@@ -41,8 +81,14 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col">
+      <JsonLd data={jsonLd} />
+
       {/* Navigation */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
+      <nav
+        className="bg-white border-b border-slate-200 sticky top-0 z-40"
+        role="navigation"
+        aria-label="Main navigation"
+      >
         <div className="container flex items-center justify-between h-14 sm:h-16 md:h-20">
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-600">
             NextRole

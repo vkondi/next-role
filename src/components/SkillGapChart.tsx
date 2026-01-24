@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * SkillGapChart Component
  * Displays skill gaps using a bar chart visualization

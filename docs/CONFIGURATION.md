@@ -20,6 +20,8 @@ LOG_LEVEL=error                            # Logging level: debug|info|warn|erro
 
 # Optional: Analytics
 CLOUDFLARE_WEB_ANALYTICS_TOKEN=your-token
+
+NEXT_PUBLIC_SITE_URL=https://my-next-role.vercel.app
 ```
 
 ## Environment Variables Explained
@@ -29,12 +31,7 @@ CLOUDFLARE_WEB_ANALYTICS_TOKEN=your-token
 #### `AI_PROVIDER` (required)
 - **Type:** `"gemini"` | `"deepseek"`
 - **Default:** `"gemini"`
-- **Purpose:** Default AI provider for all API routes
-- **Notes:**
-  - Gemini is recommended for MVP (faster, better results)
-  - Can be overridden per-request via `aiProvider` field in request body
-  - Can be overridden in UI settings context
-  - Deepseek is a cost-effective alternative
+- **Purpose:** Default AI provider for all API routes if not provided by client payload
 
 #### `GEMINI_API_KEY` (required for Gemini)
 - **Type:** String
@@ -45,11 +42,11 @@ CLOUDFLARE_WEB_ANALYTICS_TOKEN=your-token
   3. Create new API key
   4. Copy and paste into `.env.local`
 
-#### `DEEPSEEK_API_KEY` (optional)
+#### `DEEPSEEK_API_KEY` (required for Deepseek)
 - **Type:** String
-- **Purpose:** Your Deepseek API key (optional, for alternative provider)
+- **Purpose:** Your Deepseek API key
 - **How to get:**
-  1. Visit [Deepseek](https://deepseek.com)
+  1. Visit [Deepseek](https://platform.deepseek.com)
   2. Sign up and navigate to API section
   3. Create API key
   4. Copy and paste into `.env.local`
@@ -81,7 +78,6 @@ CLOUDFLARE_WEB_ANALYTICS_TOKEN=your-token
   - **Limit:** 5 requests per IP address
   - **Window:** 24-hour sliding window
   - **Localhost:** Rate limiting is skipped for localhost (127.0.0.1, ::1) for development
-  - **Configurable:** Can be disabled completely via environment variable
   - **Rationale:** Prevents abuse while keeping MVP simple
 
 #### `LOG_LEVEL` (optional)
@@ -93,17 +89,21 @@ CLOUDFLARE_WEB_ANALYTICS_TOKEN=your-token
   - **`"warn"`** (testing): Warnings and errors
   - **`"info"`** (development): General info, warnings, errors
   - **`"debug"`** (troubleshooting): All logs including detailed API calls, caching behavior, provider routing
-- **Use Cases:**
-  - Use `"debug"` when troubleshooting API issues
-  - Use `"error"` in development unless you need detailed logs
-  - Keep at `"error"` in production
 
-### Optional Configuration
+### Other Configuration
 
-#### `CLOUDFLARE_WEB_ANALYTICS_TOKEN` (optional)
+#### `CLOUDFLARE_WEB_ANALYTICS_TOKEN`
 - **Type:** String
 - **Purpose:** Cloudflare Web Analytics token for tracking
-- **Notes:** Optional for MVP
+
+#### `NEXT_PUBLIC_SITE_URL`
+- **Type:** String
+- **Default:** `"https://my-next-role.vercel.app"`
+- **Purpose:** Production URL for canonical links, Open Graph metadata, and sitemap
+- **Notes:**
+  - Must be set in production for correct SEO metadata
+  - Used by sitemap generation and social sharing previews
+  - Prefix `NEXT_PUBLIC_` makes it available to client-side code
 
 ### Token Configuration
 
@@ -145,316 +145,26 @@ Then use:
 - Query parameter: `?mock=true` on API requests
 - Or toggle "Mock Mode" in the application UI
 
-## AI Provider Configuration
+## AI Provider Selection
 
-### Provider Selection Logic
+**Architecture:** See [TECHNICAL_DETAILS.md - AI Architecture](./TECHNICAL_DETAILS.md#ai-architecture) for implementation details
 
-The system uses a three-tier precedence for AI provider selection:
-
-1. **Per-Request Override** (highest priority)
-   - Set via `aiProvider` field in API request body
-   - Allows different API calls to use different providers
-   - Example: `{ "resumeText": "...", "aiProvider": "deepseek" }`
-
-2. **UI Settings** (second priority)
-   - User can select provider in application settings
-   - Stored in React Context (localStorage in future)
-   - Persists across page navigations
-
-3. **Server Default** (lowest priority)
-   - Read from `AI_PROVIDER` environment variable
-   - Defaults to `"gemini"` if not set
-   - Used when no other selection is made
-
-### Gemini Configuration
-
-**Provider:** Google Gemini 3.0 Flash
-
-**Advantages:**
-- Fastest response times
-- Better results for career analysis
-- Free tier available
-- Recommended for MVP
-
-**Setup:**
-```bash
-AI_PROVIDER=gemini
-GEMINI_API_KEY=your-key-here
-GEMINI_MODEL=gemini-3-flash-preview
-```
-
-**Used by:**
-- Resume Interpreter
-- Career Path Generator
-- Skill Gap Analyzer
-- Roadmap Generator
-
-### Deepseek Configuration
-
-**Provider:** Deepseek API
-
-**Advantages:**
-- Cost-effective alternative
-- Reliable for career analysis
-- Easy provider switching
-
-**Setup:**
-```bash
-AI_PROVIDER=deepseek
-DEEPSEEK_API_KEY=your-key-here
-```
-
-**Fallback:** If Deepseek fails, system can fall back to configured default provider
-
-## Caching Configuration
-
-### How Response Caching Works
-
-**Overview:**
-- Responses are cached in-memory for 1 hour
-- Dramatically reduces API calls and costs
-- Improves response time for repeated requests
-
-**Cache Key Generation:**
-- SHA256 hash-based keys for consistency
-- Generated from request parameters
-- Unique per unique request
-
-**Configuration:**
-```bash
-ENABLE_CACHING=true    # Enable caching
-# or
-ENABLE_CACHING=false   # Disable for development/debugging
-```
-
-**TTL (Time to Live):**
-- Default: 1 hour (3600 seconds)
-- Responses older than 1 hour are discarded
-- Next request will call API and cache new response
-
-**Use Cases:**
-- **Production:** Always enable (`true`)
-- **Development:** Can disable (`false`) if you frequently need fresh data
-- **Testing:** Can disable if testing with different API providers
-
-**Implementation:**
-- File: `src/lib/api/cache.ts`
-- Type: In-memory caching
-- Resets on server restart (development)
-- Improves performance without persistence layer
-
-## Rate Limiting Configuration
-
-### How Rate Limiting Works
-
-**Overview:**
-- Prevents abuse of API
-- Default: 5 requests per IP address per 24 hours
-- 24-hour sliding window (most recent 24 hours)
-
-**Request Limit:**
-```
-5 requests / 24 hours / IP address
-```
-
-**Sliding Window:**
-- New requests reset the 24-hour window
-- Example: If you make 5 requests at 2:00 PM today, you can make more at 2:01 PM tomorrow
-
-**Development Exemption:**
-- Localhost IPs (127.0.0.1, ::1) are exempt from rate limiting
-- Allows unlimited requests during local development
-- Only applies when using localhost
-
-**Configuration:**
-```bash
-ENABLE_RATE_LIMITER=true     # Enable rate limiting
-# or
-ENABLE_RATE_LIMITER=false    # Disable (only for testing)
-```
-
-**Implementation:**
-- File: `src/lib/api/rateLimiter.ts`
-- Strategy: IP-based tracking
-- Configurable: Can be disabled completely
-
-**Error Response:**
-When rate limited, API returns:
-```json
-{
-  "success": false,
-  "error": "Rate limit exceeded: 5 requests per 24 hours per IP"
-}
-```
-
-**Troubleshooting:**
-- Wait 24 hours before making more requests
-- Or disable for local testing: `ENABLE_RATE_LIMITER=false`
-- Or use mock mode: `?mock=true`
-
-## Logging Configuration
-
-### Logging System
-
-**Logger:** Pino 10.1 with Pino Pretty formatter
-
-**Overview:**
-- Structured logging for production
-- Pretty-printed output in development
-- Module-based logger instances for tracking
-
-### Log Levels
-
-#### `debug`
-- **Output:** Detailed logs including:
-  - AI API calls and responses
-  - Cache hits/misses
-  - Provider routing decisions
-  - Request parameters
-  - Full error traces
-- **Use:** Troubleshooting and debugging
-- **Example Output:**
-```
-API:ResumeInterpret: Resume interpretation request received
-API:Gemini: Calling Gemini API with parameters: {...}
-API:Cache: Cache miss, generating new response
-API:ProviderSelector: Routing AI call to provider: gemini
-```
-
-#### `info`
-- **Output:** General information:
-  - API route invocations
-  - Successful operations
-  - Cache behavior (hits/misses)
-  - Provider selection
-- **Use:** Development and monitoring
-- **Example:** `API:ResumeInterpret: Resume processed successfully`
-
-#### `warn`
-- **Output:** Warning messages:
-  - Degraded performance
-  - API provider fallback
-  - Configuration issues
-- **Use:** Testing and development
-- **Example:** `API:Gemini: Provider failed, falling back to deepseek`
-
-#### `error`
-- **Output:** Only errors:
-  - Failed API calls
-  - Validation errors
-  - Server errors
-- **Use:** Production (recommended)
-- **Example:** `API:ResumeInterpret: Failed to interpret resume: Invalid JSON`
-
-### Configuration
-
-```bash
-LOG_LEVEL=error    # Production (default)
-LOG_LEVEL=warn     # Testing
-LOG_LEVEL=info     # Development
-LOG_LEVEL=debug    # Troubleshooting
-```
-
-### Logger Instances
-
-Available loggers for tracking in logs:
-
-```
-API:ResumeInterpret      - Resume interpretation endpoint
-API:CareerPathGenerate   - Career path generation endpoint
-API:CareerPathDetails    - Career path details endpoint
-API:SkillGapAnalyze      - Skill gap analysis endpoint
-API:RoadmapGenerate      - Roadmap generation endpoint
-API:Cache                - Caching system
-API:RateLimiter          - Rate limiting system
-API:Gemini               - Gemini API provider
-API:Deepseek             - Deepseek API provider
-API:ProviderSelector     - Provider selection logic
-```
-
-### Viewing Logs
-
-**In Terminal (Development):**
-```bash
-# Start dev server with debug logging
-LOG_LEVEL=debug yarn dev
-```
-
-You'll see pretty-printed output in your terminal.
-
-**Example Debug Output:**
-```
-API:ResumeInterpret: Resume interpretation request received
-API:ProviderSelector: Routing AI call to provider: gemini
-API:Gemini: Calling Gemini API
-API:Cache: Cache miss, generating new response
-API:ResumeInterpret: Resume profile extracted successfully
-```
-
-**Testing Individual Routes with Logs:**
-```bash
-# With debug logging
-LOG_LEVEL=debug yarn dev
-
-# In another terminal
-curl -X POST http://localhost:3000/api/resume/interpret \
-  -H "Content-Type: application/json" \
-  -d '{"resumeText":"..."}'
-```
+**Provider Precedence:**
+1. Per-request override (`aiProvider` field in request body)
+2. UI settings (React Context)
+3. Server default (`AI_PROVIDER` environment variable)
 
 ## Mock Mode Configuration
 
-### What is Mock Mode?
+**Purpose:** Test without API calls using pre-generated data
 
-- **Purpose:** Test application without making actual API calls
-- **Data Source:** Generated mock data from `src/lib/api/mockData.ts`
-- **Use Cases:**
-  - Testing without API keys
-  - Faster development (no API latency)
-  - Development without rate limiting concerns
-  - Testing UI with consistent data
+**Enable:**
+- Query parameter: `?mock=true`
+- UI toggle: "API Mode" in dashboard settings
 
-### Enabling Mock Mode
+**Data Source:** `src/lib/api/mockData.ts` and `src/data/sampleResumesContent/`
 
-#### Via Query Parameter
-```
-?mock=true
-```
-
-Add to any API endpoint:
-```
-POST http://localhost:3000/api/resume/interpret?mock=true
-```
-
-#### Via UI Settings
-- Open application in browser
-- Look for "API Mode" toggle in dashboard settings
-- Switch to "Mock Mode"
-- Toggle applies to all subsequent API calls
-
-### How It Works
-
-1. Request includes `?mock=true` or settings context indicates mock mode
-2. API route detects mock mode flag
-3. Returns generated mock data instead of calling AI provider
-4. Mock data follows same schema as real responses
-
-### Mock Data Source
-
-- File: `src/lib/api/mockData.ts`
-- Includes: Sample resume profiles, career paths, skill gaps, roadmaps
-- Example resume samples in: `src/data/sampleResumesContent/`
-
-### Sample Resumes
-
-Pre-loaded sample resumes for testing:
-
-- `entry-level-marketing` - Marketing professional with 2 years experience
-- `mid-level-software` - Software engineer with 5 years experience
-- `executive-finance` - Finance executive with 15 years experience
-- `senior-healthcare` - Healthcare professional with 20 years experience
-
-Use these in the UI for quick testing.
+**Benefits:** No API keys required, faster iteration, consistent test data
 
 ## Troubleshooting Configuration
 
