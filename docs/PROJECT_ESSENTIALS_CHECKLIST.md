@@ -5,23 +5,23 @@ This checklist ensures that all basic essentials are covered for maintaining cod
 ## 1. Testing
 
 - [ ] Unit testing is enabled
-- [ ] Coverage target set to greater than 90%
+- [x] Coverage target set to greater than 90%
 
 ## 2. Linting
 
-- [ ] Linting is enabled
-- [ ] Lint script added to `package.json`
-- [ ] Recommended linting rules added based on the project tech stack
+- [x] Linting is enabled
+- [x] Lint script added to `package.json`
+- [x] Recommended linting rules added based on the project tech stack
 
 ## 3. Type Safety
 
-- [ ] TypeScript is enabled
-- [ ] Type safety check script added to `package.json`
+- [x] TypeScript is enabled
+- [x] Type safety check script added to `package.json`
 
 ## 4. Formatter
 
-- [ ] Formatter is enabled
-- [ ] Format script added to `package.json`
+- [x] Formatter is enabled
+- [x] Format script added to `package.json`
 
 ## 5. Husky
 
@@ -53,8 +53,8 @@ This checklist ensures that all basic essentials are covered for maintaining cod
 
 ## 8. Documentation
 
-- [ ] Code of Conduct document added
-- [ ] Contributing document added
+- [x] Code of Conduct document added
+- [x] Contributing document added
 - [ ] Testing guidelines document added
 - [ ] Pull request guidelines document added
 - [ ] README includes CI status badge
