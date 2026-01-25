@@ -12,7 +12,7 @@ const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || 'https://my-next-role.vercel.app';
 const siteName = 'NextRole';
 const siteDescription =
-  'AI-powered career strategy copilot that analyzes your resume, generates personalized career paths, identifies skill gaps, and creates actionable month-by-month roadmaps for your next role.';
+  'AI career copilot for strategic planning: resume analysis, career paths, skill gaps, and actionable roadmaps.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -81,7 +81,8 @@ export const metadata: Metadata = {
         url: `${siteUrl}/android-chrome-512x512.png`,
         width: 512,
         height: 512,
-        alt: 'NextRole Logo',
+        alt: 'NextRole - AI Career Strategy Copilot',
+        type: 'image/png',
       },
     ],
   },
