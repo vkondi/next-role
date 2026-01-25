@@ -1,20 +1,5 @@
 # Features Overview
 
-> **Visual Guide:** This document includes references to screenshots in the [`assets/`](./assets/) folder. View the corresponding screenshots alongside each section for a better understanding of how each feature looks and works.
-
-## Core Application Features
-
-NextRole is **not** a job portal or ATS score checker. It's a **career intelligence and planning tool** that:
-
-- Analyzes your current career profile from your resume (text or PDF)
-- Simulates 4-6 strategic future career paths
-- Identifies skill gaps for each path
-- Generates a **month-by-month actionable career roadmap**
-- Supports multiple AI providers (Gemini and Deepseek)
-- Works in both mock and real API modes
-
-The output feels like guidance from a **career consultant + strategist**, not a chatbot.
-
 ## Core Pages
 
 ### 1. **Landing Page** (`/`)
@@ -114,24 +99,6 @@ Main analysis page with multiple sections:
 - **API Mode Selection:** Mock mode (for testing) or Real mode (calls actual AI APIs)
 - **AI Provider Selection:** Gemini (default) or Deepseek (alternative)
 - **Persistent settings** across page navigations
-
-## Advanced Features
-
-### PDF Resume Upload
-- Full PDF parsing and text extraction
-- Automatic text cleaning (handles spacing issues)
-- Supports multiple PDF formats
-- Fallback to text paste if PDF parsing fails
-
-## Key Differentiators
-
-- **AI-Powered Analysis:** Uses cutting-edge AI for intelligent career insights
-- **Structured Output:** All responses are validated and structured, not prose
-- **Multi-Path Simulation:** Explores multiple career trajectories, not just one recommendation
-- **Actionable Roadmap:** Month-by-month plan with concrete milestones and projects
-- **PDF Support:** Upload actual PDF resumes, not just text
-- **No Resume Scoring:** Focuses on growth potential and strategic planning, not ATS compatibility
-- **Privacy-First:** No data persistence, no authentication needed
 
 ## User Journey
 

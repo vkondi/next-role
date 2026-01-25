@@ -31,24 +31,22 @@ npm install
 
 ### 1. Configure Environment Variables
 
-Create a `.env.local` file in the project root. See [CONFIGURATION.md](CONFIGURATION.md) for a comprehensive guide to all environment variables and configuration options.
+Create a `.env.local` file in the project root:
 
-**Quick Setup:**
+**Minimal Setup (Mock Mode - No API needed):**
+```bash
+AI_PROVIDER=gemini
+LOG_LEVEL=error
+```
+
+**Production Setup:**
 ```bash
 AI_PROVIDER=gemini
 GEMINI_API_KEY=your-key-from-google-ai-studio
 LOG_LEVEL=error
 ```
 
-**For Mock Mode Only** (no API keys needed):
-```bash
-AI_PROVIDER=gemini
-LOG_LEVEL=error
-```
-
-Then use `?mock=true` query param or toggle "Mock Mode" in the UI.
-
-For detailed configuration options including caching, rate limiting, logging levels, and AI provider setup, see [CONFIGURATION.md](CONFIGURATION.md).
+For complete configuration options (AI providers, caching, rate limiting, token limits, logging), see [CONFIGURATION.md](CONFIGURATION.md).
 
 ### 2. Start Development Server
 
@@ -58,8 +56,6 @@ yarn dev
 
 This will:
 - Start Next.js development server on `http://localhost:3000`
-- Enable hot module reloading for rapid development
-- Watch for file changes automatically
 
 ### 3. Open in Browser
 
@@ -106,62 +102,41 @@ The easiest way to test is with mock mode (no API keys needed):
 
 ### Testing with Real APIs
 
-1. **Get API Keys:**
-   - **Gemini:** Get free key at [Google AI Studio](https://aistudio.google.com)
-   - **Deepseek:** Sign up at [Deepseek](https://deepseek.com) and get API key
+For API key setup and configuration options, see [CONFIGURATION.md](CONFIGURATION.md).
 
-2. **Configure `.env.local`:**
-   See [CONFIGURATION.md](CONFIGURATION.md) for all configuration options.
-   
-   ```bash
-   AI_PROVIDER=gemini
-   GEMINI_API_KEY=your-actual-key
-   LOG_LEVEL=debug
-   ```
-
-3. **Toggle to Real Mode:**
-   - In dashboard, switch API mode from Mock to Real
-   - System will use real AI providers
+1. **Get API Keys:** [Google AI Studio](https://aistudio.google.com) (Gemini) or [Deepseek](https://deepseek.com)
+2. **Add to `.env.local`:** `AI_PROVIDER=gemini` and `GEMINI_API_KEY=your-key`
+3. **Toggle to Real Mode:** Switch API mode in dashboard settings
 
 ### Debugging
 
-**View Detailed Logs:**
-See [CONFIGURATION.md - Logging Configuration](CONFIGURATION.md#logging-configuration) for comprehensive logging setup and troubleshooting.
+For detailed logging configuration and troubleshooting, see [CONFIGURATION.md](CONFIGURATION.md).
 
-Set `LOG_LEVEL=debug` in `.env.local`, then restart dev server:
-
+**Quick Debug:**
+Set `LOG_LEVEL=debug` in `.env.local`, then restart:
 ```bash
 LOG_LEVEL=debug yarn dev
 ```
 
-See terminal for detailed logs showing API calls, caching behavior, and provider routing.
-
 ## Troubleshooting
 
-For detailed troubleshooting of configuration issues, see [CONFIGURATION.md - Troubleshooting Configuration](CONFIGURATION.md#troubleshooting-configuration).
+For comprehensive troubleshooting (API keys, slow responses, caching, rate limiting), see [CONFIGURATION.md - Troubleshooting](CONFIGURATION.md#troubleshooting-configuration).
 
-### Common Setup Issues
+**Common Issues:**
 
-**"No API Key Found" Error**
-- Verify `.env.local` exists in project root (not in `src/`)
-- Restart dev server after updating `.env.local`
-- See [CONFIGURATION.md](CONFIGURATION.md#no-api-key-found-error) for details
-
-**Port 3000 Already in Use**
+**Port 3000 in Use:**
 ```bash
 yarn dev -p 3001
 ```
 
-**Module Not Found Errors**
+**Module Not Found:**
 ```bash
 yarn install
-rm -rf node_modules/.cache
+nrm -rf node_modules/.cache
 yarn dev
 ```
 
-For additional troubleshooting including slow responses, rate limiting, and caching issues, see [CONFIGURATION.md](CONFIGURATION.md#troubleshooting-configuration).
-
-### Hot Reload Not Working
+**Hot Reload Issues:**
 ```bash
 rm -rf .next
 yarn dev
@@ -227,13 +202,9 @@ After setting up locally:
 
 ## Performance Tips
 
-For comprehensive performance optimization and configuration tips, see [CONFIGURATION.md - Performance Optimization Tips](CONFIGURATION.md#performance-optimization-tips).
+For comprehensive optimization guidance, see [CONFIGURATION.md](CONFIGURATION.md).
 
-Quick tips:
-- Use **mock mode** during development (no API calls)
-- Enable **caching** (default: true) for faster repeated requests
-- Use **Gemini** by default (fastest)
-- Keep **log level at error** unless debugging
+**Quick Tips:** Use mock mode during development | Enable caching | Use Gemini (fastest) | Keep log level at error
 
 ## Getting Help
 

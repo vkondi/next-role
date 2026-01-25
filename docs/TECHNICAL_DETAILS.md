@@ -32,11 +32,11 @@ All AI functionality is **modular** and **reusable**, with support for multiple 
    - File: `src/lib/api/deepseek.ts`
 
 **Provider Selection Logic:**
-- Server default: Read from `AI_PROVIDER` environment variable (defaults to "gemini")
+- Server default: `AI_PROVIDER` environment variable (defaults to "gemini")
 - Client override: `aiProvider` field in API request body
-- Client-side UI: Settings context allows user to select provider
+- Client-side UI: Settings context
 
-See [CONFIGURATION.md - AI Provider Configuration](CONFIGURATION.md#ai-provider-configuration) for detailed provider setup instructions.
+For API keys, configuration, and setup instructions, see [CONFIGURATION.md](CONFIGURATION.md).
 
 ### AI Modules
 
@@ -117,26 +117,14 @@ Each AI prompt type has a dedicated system message that defines the AI's role an
 - Extracts valid JSON from truncated outputs
 - Prevents API failures due to response parsing
 
-**Response Cache** (`src/lib/api/cache.ts`)
-- In-memory caching with 1-hour TTL
-- SHA256 hash-based cache keys
-- Configurable via `ENABLE_CACHING` env variable
+**Response Cache** (`src/lib/api/cache.ts`)  
+In-memory caching with 1-hour TTL, SHA256 hash-based keys. See [CONFIGURATION.md](CONFIGURATION.md) for configuration.
 
-See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastructure-configuration) for detailed caching information.
+**Rate Limiter** (`src/lib/api/rateLimiter.ts`)  
+5 requests/day per IP, skips localhost. See [CONFIGURATION.md](CONFIGURATION.md) for configuration.
 
-**Rate Limiter** (`src/lib/api/rateLimiter.ts`)
-- 5 requests/day per IP address
-- 24-hour sliding window
-- Skips rate limiting for localhost (development)
-- Configurable via `ENABLE_RATE_LIMITER` env variable
-
-See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastructure-configuration) for detailed rate limiting information.
-
-**Logger** (`src/lib/api/logger.ts`)
-- Pino-based structured logging
-- Log level configurable via `LOG_LEVEL` env variable
-
-See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastructure-configuration) for detailed logging setup and log level information.
+**Logger** (`src/lib/api/logger.ts`)  
+Pino-based structured logging with configurable levels. See [CONFIGURATION.md](CONFIGURATION.md) for log levels.
 
 ## Code Quality Standards
 

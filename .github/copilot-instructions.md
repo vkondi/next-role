@@ -73,15 +73,10 @@ yarn format          # Auto-format code
 
 ### Environment Variables
 
-Essential (no defaults):
-- `GEMINI_API_KEY` or `DEEPSEEK_API_KEY` - API credentials
-- `AI_PROVIDER` - "gemini" or "deepseek" (server default)
+See [CONFIGURATION.md](../docs/CONFIGURATION.md) for complete configuration details.
 
-Optional:
-- `MAX_TOKENS_*` - Token limits (see CONFIGURATION.md)
-- `ENABLE_CACHING` - Caching on/off (default: true)
-- `ENABLE_RATE_LIMITER` - Rate limiter on/off (default: true)
-- `LOG_LEVEL` - debug/info/warn/error (default: info)
+**Essential:** `GEMINI_API_KEY` or `DEEPSEEK_API_KEY`, `AI_PROVIDER`  
+**Optional:** `MAX_TOKENS_*`, `ENABLE_CACHING`, `ENABLE_RATE_LIMITER`, `LOG_LEVEL`
 
 ### Testing APIs
 
@@ -102,10 +97,9 @@ Sample resumes available in `src/data/sampleResumesContent/`. For regression tes
 
 ### Error Handling & Resilience
 
-- **API failures:** Automatic retry (3x with 1s delay) via `apiClient.ts`
-- **JSON parsing:** `jsonRecovery.ts` extracts valid JSON from truncated responses (common with large models)
-- **Rate limiting:** 5 requests/day per IP (skipped for localhost)
-- **Logging:** Pino structured logging with instance names; info level suppresses API call details (use debug for troubleshooting)
+**API failures:** Automatic retry (3x, 1s delay) | **JSON parsing:** Recovery from truncated responses | **Rate limiting:** 5/day per IP (localhost skipped) | **Logging:** Pino with configurable levels
+
+See [TECHNICAL_DETAILS.md](../docs/TECHNICAL_DETAILS.md) and [CONFIGURATION.md](../docs/CONFIGURATION.md) for implementation details.
 
 ### State Management
 

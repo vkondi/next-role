@@ -47,7 +47,15 @@ The output feels like guidance from a **career consultant + strategist**, not a 
 
 3. **Open browser:** Navigate to `http://localhost:3000`
 
-For detailed setup instructions, see [Getting Started](./docs/GETTING_STARTED.md).
+See [Getting Started](./docs/GETTING_STARTED.md) for detailed installation and configuration instructions.
+
+## Tech Stack
+
+**Frontend:** Next.js 15, React 19, TypeScript 5.6, Tailwind CSS  
+**AI:** Google Gemini & Deepseek API  
+**Validation:** Zod | **Visualization:** Recharts | **Testing:** Vitest
+
+For complete technical details and architecture, see [Technical Details](./docs/TECHNICAL_DETAILS.md).
 
 ## Key Features
 
