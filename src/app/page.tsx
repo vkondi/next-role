@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { JsonLd } from '@/components';
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: 'NextRole - AI Career Strategy Copilot',
   description:

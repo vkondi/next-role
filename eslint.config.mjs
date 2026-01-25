@@ -3,6 +3,7 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
+import { default as nextPlugin } from '@next/eslint-plugin-next';
 
 export default [
   {
@@ -28,6 +29,7 @@ export default [
       react: reactPlugin,
       'react-hooks': reactHooksPlugin,
       prettier: prettierPlugin,
+      '@next/next': nextPlugin,
     },
     languageOptions: {
       parserOptions: {
@@ -44,6 +46,8 @@ export default [
     rules: {
       ...reactPlugin.configs.recommended.rules,
       ...reactHooksPlugin.configs.recommended.rules,
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs['core-web-vitals'].rules,
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
       'react/no-unescaped-entities': 'off',

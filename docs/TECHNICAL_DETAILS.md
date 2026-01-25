@@ -145,9 +145,9 @@ See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastru
 - **Type Safety:** No `any` types, strict null checks
 - **Styling:** Consistent Tailwind CSS classes with clsx/tailwind-merge
 - **Components:** Functional React components with hooks only
-  - Client components (using hooks/browser APIs): Marked with `'use client'` directive
-  - Server components (default): No client-side JavaScript by default
-  - Examples of client components: CareerPathsCarousel, SkillGapChart (uses Recharts)
+  - **Server components (default):** No client-side JavaScript, runs on server at build/request time
+  - **Client components:** Marked with `'use client'` directive when using hooks/browser APIs
+  - Examples: CareerPathsCarousel, SkillGapChart (Recharts requires client), DashboardContent (useState/useEffect)
 - **Data Validation:** Zod schemas for all external data
 - **Error Handling:** Comprehensive try-catch with structured logging
 - **API Design:** Consistent response format across all endpoints
@@ -208,10 +208,37 @@ React Context API for application state:
 ### Next.js API Routes
 Chosen for MVP simplicity:
 - No separate backend server needed
-- Shared TypeScript types with frontend
 - Built-in middleware support
 - Simplified deployment
-- Easy migration path to standalone backend when needed
+
+### SSR Optimization Patterns
+
+**Server Component by Default:**
+- Next.js 15 App Router uses Server Components by default
+- No `'use client'` directive needed for server components
+- Reduces client-side JavaScript bundle
+- Enables pre-rendering at build time or request time
+
+**Server Wrapper + Client Content Pattern:**
+- Pages split into minimal server wrapper + client component for interactivity
+- Example: [dashboard/page.tsx](../src/app/dashboard/page.tsx) (server wrapper) + [dashboard/dashboard-content.tsx](../src/app/dashboard/dashboard-content.tsx) (client logic)
+- Benefits: SEO metadata rendered on server, interactive features sent to client only when needed
+- Server wrapper handles: Metadata, layout, static content
+- Client component handles: useState, useEffect, API calls, user interactions
+
+**Force Static Generation:**
+- Use `export const dynamic = 'force-static';` for pages without dynamic data
+- Example: [page.tsx](../src/app/page.tsx) (homepage) pre-rendered at build time
+- Benefits: Fastest possible loading, better SEO crawling, reduced server load
+
+**Client Directive Strategy:**
+- Add `'use client'` only when needed for:
+  - React hooks (useState, useEffect, useContext)
+  - Browser APIs (localStorage, window, document)
+  - Event handlers that require client-side state
+  - Third-party libraries requiring browser environment (e.g., Recharts)
+- Keep components server-rendered when possible (e.g., Footer with Date API runs at build time)
+
 ## SEO Implementation
 
 Next.js 15 Metadata API with global/page-specific metadata, JSON-LD structured data, dynamic sitemap, and robots.txt.
