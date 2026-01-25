@@ -62,7 +62,15 @@ yarn lint
 
 # Type check
 yarn type-check
+
+# Check code formatting
+yarn format:check
+
+# Or auto-format code
+yarn format
 ```
+
+**Pre-commit Hooks:** Husky automatically runs lint, type-check, and format checks before each commit. Commits will be rejected if any checks fail.
 
 ### 4. Submit Pull Request
 - Provide clear description of changes
@@ -205,9 +213,12 @@ Checklist:
 - [ ] Types are comprehensive (no `any`)
 - [ ] No linting errors (`yarn lint`)
 - [ ] Type check passes (`yarn type-check`)
+- [ ] Code formatting check passes (`yarn format:check`)
 - [ ] Tested in browser with mock data
 - [ ] Commit messages follow convention
 - [ ] PR description explains changes clearly
+
+**CI/CD:** All pull requests trigger automated CI checks (lint, type-check, build). PRs cannot be merged until all CI jobs pass.
 
 ## Getting Help
 

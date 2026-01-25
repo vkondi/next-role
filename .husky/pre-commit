@@ -1,0 +1,8 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running pre-commit checks..."
+yarn lint || exit 1
+yarn type-check || exit 1
+yarn format:check || exit 1
+echo "✓ All pre-commit checks passed!"

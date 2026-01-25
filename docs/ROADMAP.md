@@ -95,7 +95,8 @@ NextRole is in **active development** with MVP features fully implemented and te
 
 ### 8. **Infrastructure**
 - [ ] Automated testing (Vitest, Playwright)
-- [ ] CI/CD pipeline (GitHub Actions)
+- [x] CI/CD pipeline (GitHub Actions)
+- [x] Pre-commit hooks (Husky)
 
 ## Known Limitations
 

@@ -192,6 +192,12 @@ Starts the Next.js server with the production build.
 | `yarn start` | Start production server |
 | `yarn lint` | Run ESLint |
 | `yarn type-check` | Run TypeScript type checking |
+| `yarn format` | Auto-format code with Prettier |
+| `yarn format:check` | Check code formatting without modifying |
+| `yarn test` | Run tests |
+| `yarn test:coverage` | Run tests with coverage report |
+
+**Note:** Husky automatically runs lint, type-check, and format checks before each commit to maintain code quality.
 
 ## Next Steps
 

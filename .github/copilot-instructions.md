@@ -63,7 +63,13 @@ yarn dev             # Start dev server (http://localhost:3000)
 yarn build           # Build for production
 yarn lint            # ESLint check
 yarn type-check      # TypeScript compilation check
+yarn format:check    # Check code formatting
+yarn format          # Auto-format code
 ```
+
+**Pre-commit Hooks:** Husky automatically runs lint, type-check, and format checks before each commit. Commits are rejected if checks fail.
+
+**CI/CD:** GitHub Actions runs automated checks (lint, type-check, build) on all pull requests to main/develop branches.
 
 ### Environment Variables
 
@@ -130,6 +136,7 @@ Sample resumes available in `src/data/sampleResumesContent/`. For regression tes
 - **Context First:** Read all files in `/docs` folder to gain comprehensive understanding of features and technical architecture before writing code
 - **Clarify Doubts:** If requirements or logic flows are unclear, consult with project lead before proceeding
 - **Validation:** Ensure no type-check or linting errors are introduced by new changes (`yarn type-check` and `yarn lint`)
+- **Code Quality:** Pre-commit hooks automatically enforce lint, type-check, and formatting standards
 
 ### AI Integration & Cross-Compatibility
 
