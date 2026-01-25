@@ -110,6 +110,7 @@ export default function RootLayout({
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="google-site-verification" content="wjsrKQApqIPyzuQgutkwO2lvykBJkxNPjFEmTx9qXFg" />
       </head>
       <body className="bg-slate-50 text-slate-900 flex flex-col">
         <SettingsProvider>
