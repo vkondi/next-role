@@ -63,19 +63,20 @@ yarn dev             # Start dev server (http://localhost:3000)
 yarn build           # Build for production
 yarn lint            # ESLint check
 yarn type-check      # TypeScript compilation check
+yarn format:check    # Check code formatting
+yarn format          # Auto-format code
 ```
+
+**Pre-commit Hooks:** Husky automatically runs lint, type-check, and format checks before each commit. Commits are rejected if checks fail.
+
+**CI/CD:** GitHub Actions runs automated checks (lint, type-check, build) on all pull requests to main/develop branches.
 
 ### Environment Variables
 
-Essential (no defaults):
-- `GEMINI_API_KEY` or `DEEPSEEK_API_KEY` - API credentials
-- `AI_PROVIDER` - "gemini" or "deepseek" (server default)
+See [CONFIGURATION.md](../docs/CONFIGURATION.md) for complete configuration details.
 
-Optional:
-- `MAX_TOKENS_*` - Token limits (see CONFIGURATION.md)
-- `ENABLE_CACHING` - Caching on/off (default: true)
-- `ENABLE_RATE_LIMITER` - Rate limiter on/off (default: true)
-- `LOG_LEVEL` - debug/info/warn/error (default: info)
+**Essential:** `GEMINI_API_KEY` or `DEEPSEEK_API_KEY`, `AI_PROVIDER`  
+**Optional:** `MAX_TOKENS_*`, `ENABLE_CACHING`, `ENABLE_RATE_LIMITER`, `LOG_LEVEL`
 
 ### Testing APIs
 
@@ -96,10 +97,9 @@ Sample resumes available in `src/data/sampleResumesContent/`. For regression tes
 
 ### Error Handling & Resilience
 
-- **API failures:** Automatic retry (3x with 1s delay) via `apiClient.ts`
-- **JSON parsing:** `jsonRecovery.ts` extracts valid JSON from truncated responses (common with large models)
-- **Rate limiting:** 5 requests/day per IP (skipped for localhost)
-- **Logging:** Pino structured logging with instance names; info level suppresses API call details (use debug for troubleshooting)
+**API failures:** Automatic retry (3x, 1s delay) | **JSON parsing:** Recovery from truncated responses | **Rate limiting:** 5/day per IP (localhost skipped) | **Logging:** Pino with configurable levels
+
+See [TECHNICAL_DETAILS.md](../docs/TECHNICAL_DETAILS.md) and [CONFIGURATION.md](../docs/CONFIGURATION.md) for implementation details.
 
 ### State Management
 
@@ -130,6 +130,7 @@ Sample resumes available in `src/data/sampleResumesContent/`. For regression tes
 - **Context First:** Read all files in `/docs` folder to gain comprehensive understanding of features and technical architecture before writing code
 - **Clarify Doubts:** If requirements or logic flows are unclear, consult with project lead before proceeding
 - **Validation:** Ensure no type-check or linting errors are introduced by new changes (`yarn type-check` and `yarn lint`)
+- **Code Quality:** Pre-commit hooks automatically enforce lint, type-check, and formatting standards
 
 ### AI Integration & Cross-Compatibility
 

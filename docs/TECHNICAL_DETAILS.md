@@ -32,11 +32,11 @@ All AI functionality is **modular** and **reusable**, with support for multiple 
    - File: `src/lib/api/deepseek.ts`
 
 **Provider Selection Logic:**
-- Server default: Read from `AI_PROVIDER` environment variable (defaults to "gemini")
+- Server default: `AI_PROVIDER` environment variable (defaults to "gemini")
 - Client override: `aiProvider` field in API request body
-- Client-side UI: Settings context allows user to select provider
+- Client-side UI: Settings context
 
-See [CONFIGURATION.md - AI Provider Configuration](CONFIGURATION.md#ai-provider-configuration) for detailed provider setup instructions.
+For API keys, configuration, and setup instructions, see [CONFIGURATION.md](CONFIGURATION.md).
 
 ### AI Modules
 
@@ -117,26 +117,14 @@ Each AI prompt type has a dedicated system message that defines the AI's role an
 - Extracts valid JSON from truncated outputs
 - Prevents API failures due to response parsing
 
-**Response Cache** (`src/lib/api/cache.ts`)
-- In-memory caching with 1-hour TTL
-- SHA256 hash-based cache keys
-- Configurable via `ENABLE_CACHING` env variable
+**Response Cache** (`src/lib/api/cache.ts`)  
+In-memory caching with 1-hour TTL, SHA256 hash-based keys. See [CONFIGURATION.md](CONFIGURATION.md) for configuration.
 
-See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastructure-configuration) for detailed caching information.
+**Rate Limiter** (`src/lib/api/rateLimiter.ts`)  
+5 requests/day per IP, skips localhost. See [CONFIGURATION.md](CONFIGURATION.md) for configuration.
 
-**Rate Limiter** (`src/lib/api/rateLimiter.ts`)
-- 5 requests/day per IP address
-- 24-hour sliding window
-- Skips rate limiting for localhost (development)
-- Configurable via `ENABLE_RATE_LIMITER` env variable
-
-See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastructure-configuration) for detailed rate limiting information.
-
-**Logger** (`src/lib/api/logger.ts`)
-- Pino-based structured logging
-- Log level configurable via `LOG_LEVEL` env variable
-
-See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastructure-configuration) for detailed logging setup and log level information.
+**Logger** (`src/lib/api/logger.ts`)  
+Pino-based structured logging with configurable levels. See [CONFIGURATION.md](CONFIGURATION.md) for log levels.
 
 ## Code Quality Standards
 
@@ -145,9 +133,9 @@ See [CONFIGURATION.md - Infrastructure Configuration](CONFIGURATION.md#infrastru
 - **Type Safety:** No `any` types, strict null checks
 - **Styling:** Consistent Tailwind CSS classes with clsx/tailwind-merge
 - **Components:** Functional React components with hooks only
-  - Client components (using hooks/browser APIs): Marked with `'use client'` directive
-  - Server components (default): No client-side JavaScript by default
-  - Examples of client components: CareerPathsCarousel, SkillGapChart (uses Recharts)
+  - **Server components (default):** No client-side JavaScript, runs on server at build/request time
+  - **Client components:** Marked with `'use client'` directive when using hooks/browser APIs
+  - Examples: CareerPathsCarousel, SkillGapChart (Recharts requires client), DashboardContent (useState/useEffect)
 - **Data Validation:** Zod schemas for all external data
 - **Error Handling:** Comprehensive try-catch with structured logging
 - **API Design:** Consistent response format across all endpoints
@@ -208,10 +196,37 @@ React Context API for application state:
 ### Next.js API Routes
 Chosen for MVP simplicity:
 - No separate backend server needed
-- Shared TypeScript types with frontend
 - Built-in middleware support
 - Simplified deployment
-- Easy migration path to standalone backend when needed
+
+### SSR Optimization Patterns
+
+**Server Component by Default:**
+- Next.js 15 App Router uses Server Components by default
+- No `'use client'` directive needed for server components
+- Reduces client-side JavaScript bundle
+- Enables pre-rendering at build time or request time
+
+**Server Wrapper + Client Content Pattern:**
+- Pages split into minimal server wrapper + client component for interactivity
+- Example: [dashboard/page.tsx](../src/app/dashboard/page.tsx) (server wrapper) + [dashboard/dashboard-content.tsx](../src/app/dashboard/dashboard-content.tsx) (client logic)
+- Benefits: SEO metadata rendered on server, interactive features sent to client only when needed
+- Server wrapper handles: Metadata, layout, static content
+- Client component handles: useState, useEffect, API calls, user interactions
+
+**Force Static Generation:**
+- Use `export const dynamic = 'force-static';` for pages without dynamic data
+- Example: [page.tsx](../src/app/page.tsx) (homepage) pre-rendered at build time
+- Benefits: Fastest possible loading, better SEO crawling, reduced server load
+
+**Client Directive Strategy:**
+- Add `'use client'` only when needed for:
+  - React hooks (useState, useEffect, useContext)
+  - Browser APIs (localStorage, window, document)
+  - Event handlers that require client-side state
+  - Third-party libraries requiring browser environment (e.g., Recharts)
+- Keep components server-rendered when possible (e.g., Footer with Date API runs at build time)
+
 ## SEO Implementation
 
 Next.js 15 Metadata API with global/page-specific metadata, JSON-LD structured data, dynamic sitemap, and robots.txt.

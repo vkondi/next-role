@@ -14,14 +14,16 @@ import {
 } from 'lucide-react';
 import { JsonLd } from '@/components';
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: 'NextRole - AI Career Strategy Copilot',
   description:
-    'AI-powered career planning tool that analyzes resumes, generates strategic career paths, identifies skill gaps, and creates actionable roadmaps for professionals.',
+    'AI career copilot for strategic planning: resume analysis, career paths, skill gaps, and actionable roadmaps.',
   openGraph: {
     title: 'NextRole - AI Career Strategy Copilot',
     description:
-      'AI-powered career planning tool that analyzes resumes, generates strategic career paths, identifies skill gaps, and creates actionable roadmaps for professionals.',
+      'AI career copilot for strategic planning: resume analysis, career paths, skill gaps, and actionable roadmaps.',
     type: 'website',
   },
 };

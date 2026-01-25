@@ -1,5 +1,11 @@
 # NextRole - Career Strategy Copilot
 
+[![CI](https://github.com/vkondi/next-role/actions/workflows/ci.yml/badge.svg)](https://github.com/vkondi/next-role/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **Your next role, planned with clarity.**
 
 A production-quality web application that helps professionals analyze their career path, discover strategic next moves, and execute a personalized 6-12 month career roadmap.
@@ -41,7 +47,15 @@ The output feels like guidance from a **career consultant + strategist**, not a 
 
 3. **Open browser:** Navigate to `http://localhost:3000`
 
-For detailed setup instructions, see [Getting Started](./docs/GETTING_STARTED.md).
+See [Getting Started](./docs/GETTING_STARTED.md) for detailed installation and configuration instructions.
+
+## Tech Stack
+
+**Frontend:** Next.js 15, React 19, TypeScript 5.6, Tailwind CSS  
+**AI:** Google Gemini & Deepseek API  
+**Validation:** Zod | **Visualization:** Recharts | **Testing:** Vitest
+
+For complete technical details and architecture, see [Technical Details](./docs/TECHNICAL_DETAILS.md).
 
 ## Key Features
 
