@@ -17,19 +17,20 @@ CRITICAL INSTRUCTIONS:
 4. For lists, return array format: ["item1", "item2", "item3"]
 5. Return complete data - do not truncate or abbreviate any values
 6. For years of experience, return as integer number
+7. IMPORTANT: Limit techStack and strengthAreas to maximum 8 most important items each
 
 REQUIRED FIELDS (all mandatory):
 - name: string (full name)
 - currentRole: string (current job title)
 - yearsOfExperience: number (integer, total years)
-- techStack: array of strings (technologies and tools used)
-- strengthAreas: array of strings (key strengths and competencies)
+- techStack: array of strings (TOP 8 most important technologies and tools - prioritize core skills)
+- strengthAreas: array of strings (TOP 8 key strengths and competencies - prioritize most relevant)
 - industryBackground: string (industry/domain background)
 - certifications: array of strings (or empty array if none)
 - education: array of strings (or empty array if none)
 
 EXAMPLE RESPONSE (must be valid JSON):
-{"name":"John Doe","currentRole":"Senior Engineer","yearsOfExperience":8,"techStack":["Python","JavaScript","AWS"],"strengthAreas":["Leadership","Architecture"],"industryBackground":"Technology","certifications":[],"education":["BS Computer Science"]}
+{"name":"John Doe","currentRole":"Senior Engineer","yearsOfExperience":8,"techStack":["Python","JavaScript","AWS","Docker","PostgreSQL","React","Node.js","Kubernetes"],"strengthAreas":["Leadership","System Architecture","Problem Solving","Team Collaboration","CI/CD","Agile","Mentoring","Cloud Infrastructure"],"industryBackground":"Technology","certifications":[],"education":["BS Computer Science"]}
 
 Resume to analyze:
 ${resumeText}

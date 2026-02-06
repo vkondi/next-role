@@ -64,6 +64,7 @@ For complete technical details and architecture, see [Technical Details](./docs/
 - **Skill Gap Analysis:** Detailed comparison of required vs. current skills
 - **Actionable Roadmap:** Month-by-month plan with concrete milestones and projects
 - **Market Intelligence:** Real demand scores and industry alignment insights
+- **PDF Export & Sharing:** Download comprehensive career strategy reports and share on social media
 
 See [Features](./docs/FEATURES.md) for complete feature documentation.
 

@@ -5,6 +5,7 @@
 - **Frontend:** Next.js 15 (App Router), React 19, TypeScript 5.6
 - **Styling:** Tailwind CSS 3.4, Lucide icons
 - **Charts & Visualization:** Recharts 2.14
+- **PDF Generation:** jsPDF 4.1 (client-side PDF creation)
 - **Backend:** Next.js API routes (Node.js)
 - **AI Providers:** 
   - Google Gemini 3.0 Flash (default)
@@ -186,6 +187,43 @@ All AI outputs validated against schemas:
 - Better TypeScript inference
 
 
+
+### Client-Side PDF Generation
+All PDF generation happens on the client-side:
+- **Library:** jsPDF 4.1.0 for client-side PDF creation
+- **Architecture Decision:** Client-side approach chosen for:
+  - Vercel free tier compatibility (no server-side file storage)
+  - Instant download with no API latency
+  - User privacy - no data sent to server
+  - Reduced server load and infrastructure costs
+- **Implementation Files:**
+  - Core utility: `src/lib/utils/pdfExport.ts` (526 lines)
+  - React component: `src/components/ExportPdfButton.tsx`
+  - Export function: `generateCareerStrategyPDF(data: PDFExportData): Promise<void>`
+- **PDF Structure:**
+  - Brand-consistent styling using emerald theme (#059669)
+  - Multi-page layout with automatic page breaks
+  - Section headers with background color strips
+  - Structured content: Career profile → Selected path → Skill gaps (with learning resources) → Roadmap (phases + milestones)
+  - Footer on every page: Generation date, AI provider, copyright notice, page numbers
+- **File Naming Convention:** `NextRole_{PathTitle}_{UserName}_{Date}.pdf`
+- **TypeScript Interface:** `PDFExportData` with ResumeProfile, CareerPath, SkillGapAnalysis, CareerRoadmap, aiProvider
+
+### Social Media Integration
+Native platform sharing without backend:
+- **Platforms Supported:** Twitter/X, LinkedIn, Facebook, WhatsApp, Telegram
+- **Implementation Strategy:** Direct URL schemes via `window.open()` for each platform API
+- **Message Generation:**
+  - Function: `shareOnSocialMedia(platform: string, data: PDFExportData): void`
+  - Dynamic message formatting with user name and target role
+  - URL encoding for special characters
+- **Platform-Specific Handling:**
+  - Twitter/X: `twitter.com/intent/tweet` with text + url parameters
+  - LinkedIn: `linkedin.com/sharing/share-offsite` (URL only - platform limitation)
+  - Facebook: `facebook.com/sharer/sharer.php` with quote + url
+  - WhatsApp: `wa.me/?text=` with message + link
+  - Telegram: `t.me/share/url` with text + url parameters
+- **Privacy:** No tracking, analytics, or cookies - simple share links only
 
 ### Client-Side Context for Settings
 React Context API for application state:
