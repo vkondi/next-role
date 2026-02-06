@@ -13,3 +13,4 @@ export { default as Footer } from './Footer';
 export { default as Toast } from './Toast';
 export { default as MockModeToast } from './MockModeToast';
 export { default as JsonLd } from './JsonLd';
+export { default as ExportPdfButton } from './ExportPdfButton';

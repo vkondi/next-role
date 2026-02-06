@@ -8,6 +8,7 @@ import {
   SkillGapChart,
   RoadmapTimeline,
   ApiModeToggle,
+  ExportPdfButton,
 } from '@/components';
 import MockModeToast from '@/components/MockModeToast';
 import { useApiMode, useAIProvider } from '@/lib/context/SettingsContext';
@@ -528,16 +529,15 @@ export default function DashboardContent() {
           </div>
         )}
 
-        <div className="card text-center space-y-3 sm:space-y-4">
-          <p className="heading-4 text-lg sm:text-2xl">Ready to Get Started?</p>
-          <p className="text-body text-slate-600 text-sm sm:text-base">
-            Download your personalized career strategy or share it with a
-            mentor.
-          </p>
-          <button className="btn btn-primary mx-auto text-sm sm:text-base">
-            📥 Download as PDF (Coming Soon)
-          </button>
-        </div>
+        {roadmap && selectedPath && (
+          <ExportPdfButton
+            resumeProfile={resumeProfile}
+            selectedPath={selectedPath}
+            skillGapAnalysis={skillGapAnalysis!}
+            roadmap={roadmap}
+            aiProvider={provider}
+          />
+        )}
       </div>
     </main>
   );

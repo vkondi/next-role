@@ -82,7 +82,7 @@ export function SkillGapChart({ analysis }: SkillGapChartProps) {
   }));
 
   return (
-    <div className="card space-y-4">
+    <div className="card space-y-4" id="skill-gap-chart">
       <div>
         <h3 className="heading-4 text-lg sm:text-2xl">Skill Gap Analysis</h3>
         <p className="text-small text-xs sm:text-sm text-slate-600 mt-1">

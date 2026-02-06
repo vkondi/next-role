@@ -95,6 +95,19 @@ Main analysis page with multiple sections:
 - **Risk factors** with mitigation strategies
 - **Support resources** (mentorship, courses, communities)
 
+#### E. PDF Export & Social Sharing
+
+**Export Your Career Strategy:**
+- Download a comprehensive PDF report with your complete career analysis
+- Professional document ready to share with mentors, recruiters, or for personal reference
+- Includes profile summary, selected path, skill gaps, and actionable roadmap
+- Automatic file naming and metadata tracking
+
+**Share Your Career Goals:**
+- One-click sharing to Twitter/X, LinkedIn, Facebook, WhatsApp, and Telegram
+- Pre-filled professional messages highlighting your target role
+- No registration or account linking required
+
 ### 4. **Settings & API Mode Toggle**
 - **API Mode Selection:** Mock mode (for testing) or Real mode (calls actual AI APIs)
 - **AI Provider Selection:** Gemini (default) or Deepseek (alternative)
@@ -113,4 +126,5 @@ Main analysis page with multiple sections:
 9. System analyzes skill gaps for that path with visualization
 10. System generates personalized month-by-month roadmap
 11. User can explore metrics, risks, and resources
-12. User can switch providers or use mock data for testing
+12. **User downloads PDF report or shares on social media**
+13. User can switch providers or use mock data for testing
