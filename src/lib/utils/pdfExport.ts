@@ -102,7 +102,7 @@ export async function generateCareerStrategyPDF(
     doc.setFont('helvetica', 'bold');
     doc.text(`Name: `, margin, yPosition);
     doc.setFont('helvetica', 'normal');
-    doc.text(data.resumeProfile.name, margin + 20, yPosition);
+    doc.text(data.resumeProfile.name, margin + 30, yPosition);
     yPosition += 6;
   }
 
@@ -169,29 +169,58 @@ export async function generateCareerStrategyPDF(
   yPosition += 6;
 
   doc.setFont('helvetica', 'normal');
-  doc.text(
-    `Market Demand Score: ${data.selectedPath.marketDemandScore}/100`,
-    margin + 5,
-    yPosition
-  );
+  // Market Demand Score
+  doc.setTextColor(COLORS.text);
+  doc.text('Market Demand Score: ', margin + 5, yPosition);
+  const demandScore = data.selectedPath.marketDemandScore;
+  const demandColor =
+    demandScore > 80
+      ? COLORS.green
+      : demandScore >= 50
+        ? COLORS.amber
+        : COLORS.red;
+  doc.setTextColor(demandColor);
+  doc.text(`${demandScore}/100`, margin + 45, yPosition);
   yPosition += 5;
-  doc.text(
-    `Industry Alignment: ${data.selectedPath.industryAlignment}/100`,
-    margin + 5,
-    yPosition
-  );
+
+  // Industry Alignment
+  doc.setTextColor(COLORS.text);
+  doc.text('Industry Alignment: ', margin + 5, yPosition);
+  const alignmentScore = data.selectedPath.industryAlignment;
+  const alignmentColor =
+    alignmentScore > 80
+      ? COLORS.green
+      : alignmentScore >= 50
+        ? COLORS.amber
+        : COLORS.red;
+  doc.setTextColor(alignmentColor);
+  doc.text(`${alignmentScore}/100`, margin + 45, yPosition);
   yPosition += 5;
-  doc.text(
-    `Effort Level: ${data.selectedPath.effortLevel}`,
-    margin + 5,
-    yPosition
-  );
+
+  // Effort Level
+  doc.setTextColor(COLORS.text);
+  doc.text('Effort Level: ', margin + 5, yPosition);
+  const effortColor =
+    data.selectedPath.effortLevel === 'High'
+      ? COLORS.red
+      : data.selectedPath.effortLevel === 'Medium'
+        ? COLORS.amber
+        : COLORS.green;
+  doc.setTextColor(effortColor);
+  doc.text(data.selectedPath.effortLevel, margin + 45, yPosition);
   yPosition += 5;
-  doc.text(
-    `Reward Potential: ${data.selectedPath.rewardPotential}`,
-    margin + 5,
-    yPosition
-  );
+
+  // Reward Potential
+  doc.setTextColor(COLORS.text);
+  doc.text('Reward Potential: ', margin + 5, yPosition);
+  const rewardColor =
+    data.selectedPath.rewardPotential === 'High'
+      ? COLORS.green
+      : data.selectedPath.rewardPotential === 'Medium'
+        ? COLORS.amber
+        : COLORS.red;
+  doc.setTextColor(rewardColor);
+  doc.text(data.selectedPath.rewardPotential, margin + 45, yPosition);
   yPosition += 10;
 
   // Reasoning
@@ -211,17 +240,25 @@ export async function generateCareerStrategyPDF(
   addSectionHeader('Skill Gap Analysis');
 
   doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.text);
+  doc.text(`Overall Severity:`, margin, yPosition);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.textLight);
   doc.text(
-    `Overall Severity: ${data.skillGapAnalysis.overallGapSeverity}`,
-    margin,
+    `${data.skillGapAnalysis.overallGapSeverity}`,
+    margin + 50,
     yPosition
   );
   yPosition += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.text);
+  doc.text(`Estimated Time:`, margin, yPosition);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(COLORS.textLight);
   doc.text(
-    `Estimated Time: ${data.skillGapAnalysis.estimatedTimeToClose}`,
-    margin,
+    `${data.skillGapAnalysis.estimatedTimeToClose}`,
+    margin + 50,
     yPosition
   );
   yPosition += 8;
@@ -429,7 +466,7 @@ export async function generateCareerStrategyPDF(
     yPosition += riskLines.length * 4;
   });
 
-  // Footer on every page
+  // Footer on every page (2 lines: info line + copyright line)
   const totalPages = doc.getNumberOfPages();
   const currentYear = new Date().getFullYear();
   for (let i = 1; i <= totalPages; i++) {
@@ -438,35 +475,27 @@ export async function generateCareerStrategyPDF(
     doc.setTextColor(COLORS.secondary);
     doc.setFont('helvetica', 'normal');
 
-    // Date and AI provider info
+    // Line 1: Date, AI provider, and page number
     const currentDate = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-    const footerText = `Generated on ${currentDate} • AI Provider: ${data.aiProvider.charAt(0).toUpperCase() + data.aiProvider.slice(1)}`;
-    doc.text(footerText, margin, pageHeight - 15);
+    const footerText = `Generated on ${currentDate} • AI Provider: ${data.aiProvider.charAt(0).toUpperCase() + data.aiProvider.slice(1)} • Page ${i} of ${totalPages}`;
+    doc.text(footerText, margin, pageHeight - 18);
 
-    // Page number
-    doc.text(
-      `Page ${i} of ${totalPages}`,
-      pageWidth - margin - 20,
-      pageHeight - 15
-    );
-
-    // Copyright notice
+    // Line 2: Copyright notice
     doc.setFontSize(7);
     doc.setTextColor(COLORS.secondary);
-    const copyright = `© ${currentYear} NextRole. All rights reserved.`;
-    doc.text(copyright, margin, pageHeight - 10);
+    const copyright = `© ${currentYear} Vishwajeet Kondi. All rights reserved.`;
+    doc.text(copyright, margin, pageHeight - 12);
 
-    // Disclaimer
+    // Line 3: Disclaimer (short version)
     doc.setFontSize(7);
     doc.setTextColor(COLORS.secondary);
     const disclaimer =
-      'This report is AI-generated and should be used as a guide. Please validate recommendations with industry experts.';
-    const disclaimerLines = doc.splitTextToSize(disclaimer, contentWidth);
-    doc.text(disclaimerLines, margin, pageHeight - 5);
+      'AI-generated content. Please validate recommendations with industry experts.';
+    doc.text(disclaimer, margin, pageHeight - 6);
   }
 
   // Generate filename
