@@ -1,0 +1,26 @@
+[
+  {
+    "package": "minimatch",
+    "from": "3.1.2",
+    "to": "3.1.3",
+    "advisory": "https://github.com/advisories/GHSA-f8q6-p94x-37v3"
+  },
+  {
+    "package": "minimatch",
+    "from": "9.0.5",
+    "to": "9.0.9",
+    "advisory": "https://github.com/advisories/GHSA-f8q6-p94x-37v3"
+  },
+  {
+    "package": "picomatch",
+    "from": "2.3.1",
+    "to": "2.3.2",
+    "advisory": "https://github.com/advisories/GHSA-cwfw-4gq5-mrqx"
+  },
+  {
+    "package": "picomatch",
+    "from": "4.0.3",
+    "to": "4.0.4",
+    "advisory": "https://github.com/advisories/GHSA-cwfw-4gq5-mrqx"
+  }
+]
