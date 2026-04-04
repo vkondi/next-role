@@ -36,7 +36,7 @@ function parseArgs() {
 
 function fetchPackageInfo(pkg, version) {
   return new Promise((resolvePromise, reject) => {
-    const encodedPkg = pkg.startsWith('@') ? pkg.replace('/', '%2F') : pkg;
+    const encodedPkg = pkg.startsWith('@') ? encodeURIComponent(pkg) : pkg;
     const url = `https://registry.npmjs.org/${encodedPkg}/${version}`;
 
     function handleResponse(res) {
