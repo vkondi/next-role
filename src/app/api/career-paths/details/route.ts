@@ -34,13 +34,13 @@ const handler = async (request: NextRequest) => {
     const validatedData = CareerPathDetailsRequestSchema.safeParse(body);
     if (!validatedData.success) {
       log.warn(
-        { error: validatedData.error.errors[0].message },
+        { error: validatedData.error.issues[0].message },
         'Career path details - validation failed'
       );
       return NextResponse.json(
         {
           success: false,
-          error: `Invalid request: ${validatedData.error.errors[0].message}`,
+          error: `Invalid request: ${validatedData.error.issues[0].message}`,
         },
         { status: 400 }
       );
