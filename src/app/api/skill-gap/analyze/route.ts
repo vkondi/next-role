@@ -20,13 +20,13 @@ const handler = async (request: NextRequest) => {
     const validatedData = SkillGapAnalyzerRequestSchema.safeParse(body);
     if (!validatedData.success) {
       log.warn(
-        { error: validatedData.error.errors[0].message },
+        { error: validatedData.error.issues[0].message },
         'Skill gap analysis - validation failed'
       );
       return NextResponse.json(
         {
           success: false,
-          error: `Invalid request: ${validatedData.error.errors[0].message}`,
+          error: `Invalid request: ${validatedData.error.issues[0].message}`,
         },
         { status: 400 }
       );

@@ -1,25 +1,26 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config "../../tailwind.config.ts";
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-html {
-  scroll-behavior: smooth;
-}
+  html {
+    scroll-behavior: smooth;
+  }
 
-body {
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-  line-height: 1.6;
-  color: #1e293b;
-  background-color: #f8fafc;
+  body {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    line-height: 1.6;
+    color: #1e293b;
+    background-color: #f8fafc;
+  }
 }
 
 /* Typography */
@@ -67,15 +68,15 @@ body {
   }
 
   .btn-primary {
-    @apply btn bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95;
+    @apply px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95;
   }
 
   .btn-secondary {
-    @apply btn bg-slate-200 text-slate-900 hover:bg-slate-300 active:scale-95;
+    @apply px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base bg-slate-200 text-slate-900 hover:bg-slate-300 active:scale-95;
   }
 
   .btn-ghost {
-    @apply btn bg-transparent text-slate-700 hover:bg-slate-100 border border-slate-300;
+    @apply px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base bg-transparent text-slate-700 hover:bg-slate-100 border border-slate-300;
   }
 
   .btn-sm {

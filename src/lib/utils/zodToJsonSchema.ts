@@ -58,19 +58,11 @@ export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchemaProperty {
 
   // Handle ZodArray
   if (schema instanceof z.ZodArray) {
-    const items = zodToJsonSchema(schema.element);
+    const items = zodToJsonSchema(schema.element as unknown as z.ZodTypeAny);
     const result: JsonSchemaProperty = {
       type: 'array',
       items,
     };
-
-    // Extract min/max constraints if present
-    if (schema._def.minLength) {
-      result.minItems = schema._def.minLength.value;
-    }
-    if (schema._def.maxLength) {
-      result.maxItems = schema._def.maxLength.value;
-    }
 
     return result;
   }
@@ -79,13 +71,11 @@ export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchemaProperty {
   if (schema instanceof z.ZodString) {
     const result: JsonSchemaProperty = { type: 'string' };
 
-    // Extract min/max length constraints if present
-    for (const check of schema._def.checks) {
-      if (check.kind === 'min') {
-        result.minLength = check.value;
-      } else if (check.kind === 'max') {
-        result.maxLength = check.value;
-      }
+    if (schema.minLength !== null) {
+      result.minLength = schema.minLength;
+    }
+    if (schema.maxLength !== null) {
+      result.maxLength = schema.maxLength;
     }
 
     return result;
@@ -95,16 +85,13 @@ export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchemaProperty {
   if (schema instanceof z.ZodNumber) {
     const result: JsonSchemaProperty = { type: 'number' };
 
-    // Check for integer type
-    for (const check of schema._def.checks) {
-      if (check.kind === 'int') {
-        result.type = 'integer';
-      } else if (check.kind === 'min') {
-        result.minimum = check.value;
-      } else if (check.kind === 'max') {
-        result.maximum = check.value;
-      }
+    const { minimum, maximum, format } = schema._zod.bag;
+
+    if (format && ['int32', 'uint32', 'safeint'].includes(format)) {
+      result.type = 'integer';
     }
+    if (minimum !== undefined) result.minimum = minimum;
+    if (maximum !== undefined) result.maximum = maximum;
 
     return result;
   }
@@ -118,19 +105,23 @@ export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchemaProperty {
   if (schema instanceof z.ZodEnum) {
     return {
       type: 'string',
-      enum: schema._def.values as string[],
+      enum: Object.values(schema._zod.def.entries) as string[],
     };
   }
 
   // Handle ZodOptional
   if (schema instanceof z.ZodOptional) {
-    const innerSchema = zodToJsonSchema(schema.unwrap());
+    const innerSchema = zodToJsonSchema(
+      schema.unwrap() as unknown as z.ZodTypeAny
+    );
     return innerSchema;
   }
 
   // Handle ZodNullable
   if (schema instanceof z.ZodNullable) {
-    const innerSchema = zodToJsonSchema(schema.unwrap());
+    const innerSchema = zodToJsonSchema(
+      schema.unwrap() as unknown as z.ZodTypeAny
+    );
     // Add null as valid type
     if (innerSchema.type && typeof innerSchema.type === 'string') {
       innerSchema.type = [innerSchema.type, 'null'];
@@ -140,7 +131,7 @@ export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchemaProperty {
 
   // Handle ZodLiteral
   if (schema instanceof z.ZodLiteral) {
-    const value = schema._def.value;
+    const value = schema._def.values[0];
     if (typeof value === 'string') {
       return { type: 'string', enum: [value] };
     } else if (typeof value === 'number') {
@@ -152,7 +143,7 @@ export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchemaProperty {
 
   // Handle ZodDefault - extract the inner type
   if (schema instanceof z.ZodDefault) {
-    return zodToJsonSchema(schema._def.innerType);
+    return zodToJsonSchema(schema._def.innerType as unknown as z.ZodTypeAny);
   }
 
   // Fallback for unknown types
@@ -171,7 +162,7 @@ export function addDescriptionsToSchema(
   jsonSchema: JsonSchemaProperty
 ): JsonSchemaProperty {
   // Extract description from Zod schema if available
-  const description = zodSchema._def?.description;
+  const description = zodSchema.description;
 
   if (description) {
     jsonSchema.description = description;
@@ -193,7 +184,7 @@ export function addDescriptionsToSchema(
   // Recursively add descriptions to array items
   if (zodSchema instanceof z.ZodArray && jsonSchema.items) {
     jsonSchema.items = addDescriptionsToSchema(
-      zodSchema.element,
+      zodSchema.element as unknown as z.ZodTypeAny,
       jsonSchema.items
     );
   }
